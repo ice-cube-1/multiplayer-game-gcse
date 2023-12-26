@@ -13,7 +13,11 @@
     var socket = io.connect('http://' + document.domain + ':' + location.port);
     var id;
     var grid;
-    var screensize = [4,4]
+    var gridToRender = [];
+    var screensize = [4,4];
+    socket.on('base_grid', function(data) {
+        grid = data
+    });
     socket.on('client_id', function(data) {
         id = data
         console.log('Your client ID is: ' + data);
@@ -33,10 +37,20 @@
             screenyoffset = grid.length-1-screensize[1]
         }
         console.log(screenxoffset,screenyoffset,playerpos[id]['x'],playerpos[id]['y'])
+        for (let i = 0; i < screensize[1]; i++) {
+            gridToRender[i] = [];
+            for (let j = 0; j < screensize[0]; j++) {
+                gridToRender[i][j] = [255,255,255];
+            }
+        }
+        for (let i = 0; i<playerpos.length; i++) {
+            if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1])) {
+                console.log("test")
+                gridToRender[playerpos[i]['y']-screenyoffset][playerpos[i]['x']-screenxoffset] = playerpos[i]['color'];
+            }
+        }
+        console.log(gridToRender)
         });
-    socket.on('base_grid', function(data) {
-        grid = data
-    });
     $(document).keydown(function(e) {
         var direction = '';
         switch(e.which) {

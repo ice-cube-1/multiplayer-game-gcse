@@ -11,7 +11,7 @@ class Player:
     def __init__(self,x,y):
         self.x = x
         self.y = y
-        self.color = (randint(0,255),randint(0,255),randint(0,255))
+        self.color = [randint(0,255),randint(0,255),randint(0,255)]
     def move(self, charin):
         if charin == "W":
             self.y+=1
@@ -42,7 +42,7 @@ def index():
 @socketio.on('connect')
 def handle_connect():
     global players
-    players.append(Player(randint(0,gridlx),randint(0,gridly)))
+    players.append(Player(randint(0,gridlx-1),randint(0,gridly-1)))
     client_id = len(players)-1
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
