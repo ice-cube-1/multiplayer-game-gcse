@@ -32,24 +32,23 @@
         if (screenxoffset < 0) {
             screenxoffset = 0
         } else if (screenxoffset + screensize[0] >= grid[0].length) {
-            screenxoffset = grid[0].length-1-screensize[0]
+            screenxoffset = grid[0].length-screensize[0]
         }
         if (screenyoffset < 0) {
             screenyoffset = 0
         } else if (screenyoffset + screensize[1] >= grid.length) {
-            screenyoffset = grid.length-1-screensize[1]
+            screenyoffset = grid.length-screensize[1]
         }
         for (let i = 0; i < screensize[1]; i++) {
             gridToRender[i] = [];
             for (let j = 0; j < screensize[0]; j++) {
-                if (grid[j+screenxoffset][i+screenyoffset] ==0) {
+                if (grid[i+screenyoffset][j+screenxoffset] == 0) {
                     gridToRender[i][j] = [255,255,255];
                 } else {
-                    gridToRender[i][j] = [0,0,0]
+                    gridToRender[i][j] = [0,0,0];
                 }
             }
         }
-        console.log(gridToRender)
         for (let i = 0; i<playerpos.length; i++) {
             if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1])) {
                 gridToRender[playerpos[i]['y']-screenyoffset][playerpos[i]['x']-screenxoffset] = playerpos[i]['color'];

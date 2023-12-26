@@ -6,8 +6,12 @@ from flask_cors import CORS
 gridlx = 80
 gridly = 80
 grid = [[0 for i in range(gridlx)] for j in range(gridly)]
-grid = [[1] + row + [1] for row in ([0] * len(grid[0]), *grid, [0] * len(grid[0]))]
-
+for i in range(gridly):
+    if i == 0 or i == gridly-1:
+        grid[i] = [1 for i in range(gridlx)]
+    else:
+        grid[i][-1] = 1
+        grid[i][0] = 1
 
 class Player:
     def __init__(self,x,y):
