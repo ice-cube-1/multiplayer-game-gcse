@@ -3,9 +3,11 @@ from flask import Flask, render_template
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 
-gridlx = 16
-gridly = 16
+gridlx = 80
+gridly = 80
 grid = [[0 for i in range(gridlx)] for j in range(gridly)]
+grid = [[1] + row + [1] for row in ([0] * len(grid[0]), *grid, [0] * len(grid[0]))]
+
 
 class Player:
     def __init__(self,x,y):
@@ -14,9 +16,9 @@ class Player:
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
     def move(self, charin):
         if charin == "W":
-            self.y+=1
-        elif charin == "S":
             self.y-=1
+        elif charin == "S":
+            self.y+=1
         elif charin == "A":
             self.x-=1
         elif charin == "D":
