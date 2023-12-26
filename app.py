@@ -13,20 +13,33 @@ for i in range(gridly):
         grid[i][-1] = 1
         grid[i][0] = 1
 
+def checkplayer(x,y):
+    for i in players:
+        if i.x == x and i.y == y:
+            return False
+    return True
+
 class Player:
     def __init__(self,x,y):
         self.x = x
         self.y = y
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
     def move(self, charin):
+        print(self.x,self.y)
         if charin == "W":
-            self.y-=1
+            if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
+                self.y-=1
         elif charin == "S":
-            self.y+=1
+            if grid[self.y+1][self.x] == 0 and checkplayer(self.x,self.y+1):
+                self.y+=1
         elif charin == "A":
-            self.x-=1
+            if grid[self.y][self.x-1] == 0 and checkplayer(self.x-1,self.y):
+                self.x-=1
         elif charin == "D":
-            self.x+=1
+            if grid[self.y][self.x+1] == 0 and checkplayer(self.x+1,self.y):
+                self.x+=1
+
+
     def to_dict(self):
         return {
             'x': self.x,
