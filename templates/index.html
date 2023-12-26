@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASD Input with WebSocket</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
+</head>
+<body>
+
+<script>
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    var id;
+    var grid;
+    socket.on('client_id', function(data) {
+        id = data
+        console.log('Your client ID is: ' + data);
+    });
+    socket.on('new_positions', function(data) {
+        var playerpos = data.objects;
+        for (var i = 0; i < playerpos.length; i++) {
+            console.log(playerpos[i].x);
+            console.log(playerpos[i].y);
+        }
+        });
+    socket.on('base_grid', function(data) {
+        grid = data
+    });
+    $(document).keydown(function(e) {
+        var direction = '';
+        switch(e.which) {
+            case 87:
+                direction = 'W';
+                break;
+            case 65:
+                direction = 'A';
+                break;
+            case 83:
+                direction = 'S';
+                break;
+            case 68:
+                direction = 'D';
+                break;
+            default:
+                return;
+        }
+
+        socket.emit('update_position', { direction: direction, id: id});
+    });
+
+</script>
+
+</body>
+</html>
