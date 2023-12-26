@@ -13,16 +13,26 @@
     var socket = io.connect('http://' + document.domain + ':' + location.port);
     var id;
     var grid;
+    var screensize = [4,4]
     socket.on('client_id', function(data) {
         id = data
         console.log('Your client ID is: ' + data);
     });
     socket.on('new_positions', function(data) {
         var playerpos = data.objects;
-        for (var i = 0; i < playerpos.length; i++) {
-            console.log(playerpos[i].x);
-            console.log(playerpos[i].y);
+        screenxoffset = playerpos[id]['x']-screensize[0]/2
+        screenyoffset = playerpos[id]['y']-screensize[1]/2
+        if (screenxoffset < 0) {
+            screenxoffset = 0
+        } else if (screenxoffset + screensize[0] >= grid[0].length) {
+            screenxoffset = grid[0].length-1-screensize[0]
         }
+        if (screenyoffset < 0) {
+            screenyoffset = 0
+        } else if (screenyoffset + screensize[1] >= grid.length) {
+            screenyoffset = grid.length-1-screensize[1]
+        }
+        console.log(screenxoffset,screenyoffset,playerpos[id]['x'],playerpos[id]['y'])
         });
     socket.on('base_grid', function(data) {
         grid = data
@@ -45,7 +55,6 @@
             default:
                 return;
         }
-
         socket.emit('update_position', { direction: direction, id: id});
     });
 
