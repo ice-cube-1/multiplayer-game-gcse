@@ -67,6 +67,9 @@ var canvas = document.getElementById("canvas");
             case 68:
                 direction = 'D';
                 break;
+            case 32:
+                direction = "Space";
+                break;
             default:
                 return;
         }

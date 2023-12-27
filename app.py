@@ -22,13 +22,21 @@ def checkplayer(x,y):
             return False
     return True
 
+def attack(player):
+    for i in range(len(players)):
+        if abs(players[i].x-player.x)<=1 and abs(players[i].y-player.y)<=1 and players[i] != player:
+            players[i].hp-=1
+            if players[i].hp <= 0:
+                players[i].x = 9999
+                players[i].y = 9999
+
 class Player:
     def __init__(self,x,y):
         self.x = x
         self.y = y
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
+        self.hp = 5
     def move(self, charin):
-        print(self.x,self.y)
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
                 self.y-=1
@@ -41,8 +49,8 @@ class Player:
         elif charin == "D":
             if grid[self.y][self.x+1] == 0 and checkplayer(self.x+1,self.y):
                 self.x+=1
-
-
+        elif charin == "Space":
+            attack(self)
     def to_dict(self):
         return {
             'x': self.x,
