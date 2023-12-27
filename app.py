@@ -50,7 +50,7 @@ class Player:
 players = []
 
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 socketio = SocketIO(app)
 CORS(app)
 
