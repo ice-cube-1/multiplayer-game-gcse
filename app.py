@@ -31,9 +31,12 @@ def attack(player):
                 players[i].y = 9999
 
 class Player:
-    def __init__(self,x,y,name):
-        self.x = x
-        self.y = y
+    def __init__(self,name):
+        self.x = 0
+        self.y = 0
+        while grid[self.y][self.x] != 0:
+            self.x = randint(0,gridlx-1)
+            self.y = randint(0,gridlx-1)
         self.name = name
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
         self.hp = 5
@@ -86,7 +89,7 @@ def handle_connect():
         if players[i].name == playerName:
             client_id = i
     if client_id == -1:
-        players.append(Player(randint(0,gridlx-1),randint(0,gridly-1),playerName))
+        players.append(Player(playerName))
         client_id = len(players)-1
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
