@@ -12,6 +12,9 @@ for i in range(gridly):
     else:
         grid[i][-1] = 1
         grid[i][0] = 1
+    for j in range(gridlx):
+        if randint(0,9) < 1:
+            grid[i][j] = 1
 
 def checkplayer(x,y):
     for i in players:
