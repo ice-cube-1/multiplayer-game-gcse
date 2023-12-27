@@ -1,5 +1,5 @@
 from random import randint
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 
@@ -31,9 +31,10 @@ def attack(player):
                 players[i].y = 9999
 
 class Player:
-    def __init__(self,x,y):
+    def __init__(self,x,y,name):
         self.x = x
         self.y = y
+        self.name = name
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
         self.hp = 5
     def move(self, charin):
@@ -62,18 +63,31 @@ players = []
 
 
 app = Flask(__name__, static_url_path='/static')
+app.secret_key='notVerySecret'
 socketio = SocketIO(app)
 CORS(app)
 
-@app.route('/')
+@app.route('/', methods=['GET', 'POST'])
 def index():
+    if request.method == 'POST':
+        session['playerName'] = request.form.get('player_name')
+        return redirect(url_for('main'))
     return render_template('index.html')
+
+@app.route('/main')
+def main():
+    return render_template('main.html')
 
 @socketio.on('connect')
 def handle_connect():
-    global players
-    players.append(Player(randint(0,gridlx-1),randint(0,gridly-1)))
-    client_id = len(players)-1
+    playerName = session.get('playerName','Guest')
+    client_id = -1
+    for i in range(len(players)):
+        if players[i].name == playerName:
+            client_id = i
+    if client_id == -1:
+        players.append(Player(randint(0,gridlx-1),randint(0,gridly-1),playerName))
+        client_id = len(players)-1
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
