@@ -28,8 +28,35 @@ def attack(player):
             players[i].hp-=1
             if players[i].hp <= 0:
                 players[i].x = 9999
-                players[i].y = 9999       
-  
+                players[i].y = 9999 
+
+rarities=['common','uncommon','rare','epic','legendary']
+healingStats = [2,3,5,7,10]
+armourStats = [11,12,13,15,18]
+weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
+weaponMultiplier = [1,1.25,1.5,2,3]
+def interact(player):
+    for i in range(len(items)):
+        if items[i]['x'] == player.x and items[i]['y'] == player.y:
+            if items[i]['type'] == 'healing':
+                # improve logic here
+                player.hp += healingStats[rarities.index(items[i]['rarity'])]
+                if player.hp > player.maxhp:
+                    player.hp = player.maxhp
+            else:
+                player.items.append(items[i])
+                if items[i]['type'] == 'armour':
+                    player.ac = armourStats[rarities.index(items[i]['rarity'])]
+                else:
+                    player.damage = weaponTypes[items[i]['weapontype']][0]
+                    player.range = weaponTypes[items[i]['weapontype']][1]
+                    player.attackSpeed = weaponTypes[items[i]['weapontype']][2]
+                    player.damageMultiplier = weaponMultiplier[rarities.index(items[i]['rarity'])]
+            items.pop(i)
+            socketio.emit('item_positions', items)
+            return player
+
+
 def createItem(rarity,type):
     item={}
     item['x'] = 0
@@ -54,7 +81,14 @@ class Player:
             self.y = randint(0,gridlx-1)
         self.name = name
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
-        self.hp = 5
+        self.hp = 40
+        self.maxhp = 40
+        self.damage = 4
+        self.damageMultiplier = 1
+        self.ac = 10
+        self.range = 1
+        self.attackSpeed = 0.3
+        self.items = []
     def move(self, charin):
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
@@ -70,6 +104,9 @@ class Player:
                 self.x+=1
         elif charin == "Space":
             attack(self)
+        elif charin == "E":
+            self = interact(self)
+            print(self.items)
     def to_dict(self):
         return {
             'x': self.x,
