@@ -4,8 +4,10 @@ var canvas = document.getElementById("canvas");
     var socket = io.connect('http://' + document.domain + ':' + location.port);
     var id;
     var grid;
+    var playerpos;
     var gridToRender = [];
     var screensize = [20,20];
+    var lastAttack = Date.now()
     socket.on('base_grid', function(data) {
         grid = data
     });
@@ -17,7 +19,7 @@ var canvas = document.getElementById("canvas");
         console.log('Your client ID is: ' + data);
     });
     socket.on('new_positions', function(data) {
-        var playerpos = data.objects;
+        playerpos = data.objects;
         screenxoffset = playerpos[id]['x']-screensize[0]/2
         screenyoffset = playerpos[id]['y']-screensize[1]/2
         if (screenxoffset < 0) {
@@ -64,27 +66,20 @@ var canvas = document.getElementById("canvas");
     });
     $(document).keydown(function(e) {
         var direction = '';
+        var currentTime = Date.now();
         switch(e.which) {
-            case 87:
-                direction = 'W';
-                break;
-            case 65:
-                direction = 'A';
-                break;
-            case 83:
-                direction = 'S';
-                break;
-            case 68:
-                direction = 'D';
-                break;
-            case 69:
-                direction = 'E';
-                break;
+            case 87: direction = 'W'; break;
+            case 65: direction = 'A'; break;
+            case 83: direction = 'S'; break;
+            case 68: direction = 'D'; break;
+            case 69: direction = 'E'; break;
             case 32:
+                if(currentTime - lastAttack < playerpos[id]['attackSpeed']) {return;}
+                lastAttack = currentTime;
                 direction = "Space";
+                console.log(playerpos[id]['attackSpeed'])
                 break;
-            default:
-                return;
+            default: return;
         }
         socket.emit('update_position', { direction: direction, id: id});
     });

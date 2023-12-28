@@ -111,7 +111,8 @@ class Player:
         return {
             'x': self.x,
             'y': self.y,
-            'color': self.color
+            'color': self.color,
+            'attackSpeed': self.attackSpeed*1000
         }
 
 players = []
