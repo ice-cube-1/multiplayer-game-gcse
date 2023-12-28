@@ -9,6 +9,9 @@ var canvas = document.getElementById("canvas");
     socket.on('base_grid', function(data) {
         grid = data
     });
+    socket.on('item_positions', function(data) {
+        items = data
+    });
     socket.on('client_id', function(data) {
         id = data
         console.log('Your client ID is: ' + data);
@@ -49,6 +52,13 @@ var canvas = document.getElementById("canvas");
                 var y = i * scale;
                 ctx.fillStyle = `rgb(${gridToRender[i][j].join(',')})`; // Convert RGB array to string
                 ctx.fillRect(x, y, scale, scale);
+            }
+        }
+        for (let i = 0; i<items.length; i++) {
+            if ((0 <= items[i]['x'] - screenxoffset && items[i]['x'] - screenxoffset < screensize[0]) && (0 <= items[i]['y'] - screenyoffset && items[i]['y'] - screenyoffset < screensize[1])) {
+                var img = new Image();
+                img.src = `static/items-images/${items[i]['type']}${items[i]['weapontype']}/${items[i]['rarity']}.png`;
+                ctx.drawImage(img, (items[i]['x'] - screenxoffset) * scale, (items[i]['y'] - screenyoffset) * scale,scale,scale);
             }
         }
     });

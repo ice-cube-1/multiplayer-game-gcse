@@ -1,4 +1,4 @@
-from random import randint
+from random import randint,choice
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
@@ -28,7 +28,22 @@ def attack(player):
             players[i].hp-=1
             if players[i].hp <= 0:
                 players[i].x = 9999
-                players[i].y = 9999
+                players[i].y = 9999       
+  
+def createItem(rarity,type):
+    item={}
+    item['x'] = 0
+    item['y'] = 0
+    while grid[item['y']][item['x']] != 0:
+        item['x'] = randint(0,gridlx-1)
+        item['y'] = randint(0,gridlx-1)
+    item['rarity'] = rarity
+    item['type'] = type
+    if type != 'weapon':
+        item['weapontype'] = ""
+    else:
+        item['weapontype'] = choice(['/sword','/spear','/axe','/bow'])
+    return item   
 
 class Player:
     def __init__(self,name):
@@ -63,6 +78,7 @@ class Player:
         }
 
 players = []
+items = []
 
 
 app = Flask(__name__, static_url_path='/static')
@@ -83,6 +99,26 @@ def main():
 
 @socketio.on('connect')
 def handle_connect():
+    for i in range(16):
+        items.append(createItem("common",'healing'))
+        items.append(createItem("common",'armour'))
+        items.append(createItem("common",'weapon'))    
+        if i%2==0:
+            items.append(createItem("uncommon",'healing'))
+            items.append(createItem("uncommon",'armour'))            
+            items.append(createItem("uncommon",'weapon'))            
+        if i%4==0:
+            items.append(createItem("rare",'healing'))
+            items.append(createItem("rare",'armour'))
+            items.append(createItem("rare",'weapon'))
+        if i%8==0:
+            items.append(createItem("epic",'healing'))
+            items.append(createItem("epic",'armour'))
+            items.append(createItem("epic",'weapon'))
+        if i%16==0:
+            items.append(createItem("legendary",'healing'))
+            items.append(createItem("legendary",'armour'))
+            items.append(createItem("legendary",'weapon'))
     playerName = session.get('playerName','Guest')
     client_id = -1
     for i in range(len(players)):
@@ -94,6 +130,7 @@ def handle_connect():
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
+    socketio.emit('item_positions', items)
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
 
