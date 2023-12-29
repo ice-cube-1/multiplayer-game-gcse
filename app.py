@@ -129,7 +129,8 @@ class Player:
             'x': self.x,
             'y': self.y,
             'color': self.color,
-            'attackSpeed': self.attackSpeed*1000
+            'attackSpeed': self.attackSpeed*1000,
+            'hp': self.hp
         }
 
 players = []

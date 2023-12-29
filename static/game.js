@@ -1,6 +1,8 @@
 var canvas = document.getElementById("canvas");
     var scale = 40
     var ctx = canvas.getContext("2d");
+    ctx.font = "20px Arial";
+    ctx.textAlign = "center";
     var socket = io.connect('http://' + document.domain + ':' + location.port);
     var id;
     var grid;
@@ -56,6 +58,12 @@ var canvas = document.getElementById("canvas");
                 ctx.fillRect(x, y, scale, scale);
             }
         }
+        for (let i = 0; i<playerpos.length; i++) {
+            if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1])) {
+                console.log(playerpos[i]['hp'],'test')
+                ctx.fillText(playerpos[i]['hp'],(playerpos[i]['x']-screenxoffset+0.5)*scale,(playerpos[i]['y']-screenyoffset+0.5)*scale+10)
+            }
+        }      
         for (let i = 0; i<items.length; i++) {
             if ((0 <= items[i]['x'] - screenxoffset && items[i]['x'] - screenxoffset < screensize[0]) && (0 <= items[i]['y'] - screenyoffset && items[i]['y'] - screenyoffset < screensize[1])) {
                 var img = new Image();
