@@ -2,6 +2,7 @@ from random import randint,choice
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
+import math
 
 gridlx = 80
 gridly = 80
@@ -22,24 +23,30 @@ def checkplayer(x,y):
             return False
     return True
 
+def rollDice(sides,number):
+    return sum([randint(1,sides) for i in range(int(number*4))])//4
+
 def attack(toAttack,attacker):
-    players[toAttack].hp-=attacker.damage
-    if players[toAttack].hp <= 0:
-        players[toAttack].x = 9999
-        players[toAttack].y = 9999 
+    if rollDice(20,1)+attacker.proficiency > players[toAttack].ac:
+        players[toAttack].hp-=rollDice(attacker.damage,attacker.damageMultiplier)+attacker.proficiency
+        if players[toAttack].hp <= 0:
+            players[toAttack].x = 9999
+            players[toAttack].y = 9999 
+            return 1
+    return 0
 
 
 def findTarget(player):
     for i in range(len(players)):
         if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range:
             if player.direction == 'W' and player.y - players[i].y > 0:
-                attack(i,player)
+                return attack(i,player)
             elif player.direction == 'S' and players[i].y - player.y > 0:
-                attack(i,player)
+                return attack(i,player)
             if player.direction == 'A' and player.x - players[i].x > 0:
-                attack(i,player)
+                return attack(i,player)
             elif player.direction == 'D' and players[i].x - player.x > 0:
-                attack(i,player)
+                return attack(i,player)
 
 
 rarities=['common','uncommon','rare','epic','legendary']
@@ -47,6 +54,7 @@ healingStats = [2,3,5,7,10]
 armourStats = [11,12,13,15,18]
 weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
 weaponMultiplier = [1,1.25,1.5,2,3]
+proficiencyBonuses = [-1,0,1,2,4,8]
 def interact(player):
     for i in range(len(items)):
         if items[i]['x'] == player.x and items[i]['y'] == player.y:
@@ -101,7 +109,9 @@ class Player:
         self.range = 1
         self.attackSpeed = 0.3
         self.items = []
+        self.proficiency = 0
         self.direction = 'W'
+        self.killCount = 0
     def move(self, charin):
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
@@ -120,7 +130,9 @@ class Player:
                 self.x+=1
             self.direction = 'D'
         elif charin == "Space":
-            findTarget(self)
+            self.killCount += findTarget(self)
+            self.proficiency = math.floor(math.log(self.killCount+1,2))
+            print(self.proficiency)
         elif charin == "E":
             self = interact(self)
             print(self.items)
