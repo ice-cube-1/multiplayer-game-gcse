@@ -22,13 +22,25 @@ def checkplayer(x,y):
             return False
     return True
 
-def attack(player):
+def attack(toAttack,attacker):
+    players[toAttack].hp-=attacker.damage
+    if players[toAttack].hp <= 0:
+        players[toAttack].x = 9999
+        players[toAttack].y = 9999 
+
+
+def findTarget(player):
     for i in range(len(players)):
-        if abs(players[i].x-player.x)<=1 and abs(players[i].y-player.y)<=1 and players[i] != player:
-            players[i].hp-=1
-            if players[i].hp <= 0:
-                players[i].x = 9999
-                players[i].y = 9999 
+        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range:
+            if player.direction == 'W' and player.y - players[i].y > 0:
+                attack(i,player)
+            elif player.direction == 'S' and players[i].y - player.y > 0:
+                attack(i,player)
+            if player.direction == 'A' and player.x - players[i].x > 0:
+                attack(i,player)
+            elif player.direction == 'D' and players[i].x - player.x > 0:
+                attack(i,player)
+
 
 rarities=['common','uncommon','rare','epic','legendary']
 healingStats = [2,3,5,7,10]
@@ -89,21 +101,26 @@ class Player:
         self.range = 1
         self.attackSpeed = 0.3
         self.items = []
+        self.direction = 'W'
     def move(self, charin):
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
                 self.y-=1
+            self.direction = 'W'
         elif charin == "S":
             if grid[self.y+1][self.x] == 0 and checkplayer(self.x,self.y+1):
                 self.y+=1
+            self.direction='S'
         elif charin == "A":
             if grid[self.y][self.x-1] == 0 and checkplayer(self.x-1,self.y):
                 self.x-=1
+            self.direction = 'A'
         elif charin == "D":
             if grid[self.y][self.x+1] == 0 and checkplayer(self.x+1,self.y):
                 self.x+=1
+            self.direction = 'D'
         elif charin == "Space":
-            attack(self)
+            findTarget(self)
         elif charin == "E":
             self = interact(self)
             print(self.items)
