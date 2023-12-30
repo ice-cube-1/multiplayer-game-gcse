@@ -188,7 +188,7 @@ items = []
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key='notVerySecret'
-socketio = SocketIO(app, async_mode='eventlet')  # or 'gevent'
+socketio = SocketIO(app)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():

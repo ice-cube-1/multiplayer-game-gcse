@@ -4,7 +4,7 @@ var canvas = document.getElementById("canvas");
     ctx.font = "20px Arial";
     ctx.textAlign = "center";
     var portStr = location.port == "" ? "" : ":"+location.port
-    var socket = io.connect(document.location.protocol+'//' + document.domain + portStr);
+    var socket = io.connect(document.location.protocol+'//' + document.domain + portStr,{transports:["websocket"]});
 
     // var protocol = document.location.protocol == 'http:' ? 'ws:' : 'wss:'
     // var socket = new WebSocket(protocol+'//' + document.domain + ':' + location.port);
