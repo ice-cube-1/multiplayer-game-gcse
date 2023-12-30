@@ -23,6 +23,14 @@ def checkplayer(x,y):
             return False
     return True
 
+def checkitem(x,y):
+    if grid[y][x] == 1:
+        return False
+    for i in items:
+        if (i['x'] == x and i['y'] == y):
+            return False
+    return True
+
 def rollDice(sides,number):
     return sum([randint(1,sides) for i in range(int(number*4))])//4
 
@@ -30,6 +38,18 @@ def attack(toAttack,attacker):
     if rollDice(20,1)+attacker.proficiency > players[toAttack].ac:
         players[toAttack].hp-=rollDice(attacker.damage,attacker.damageMultiplier)+attacker.proficiency
         if players[toAttack].hp <= 0:
+            for i in players[toAttack].items:
+                tryx,tryy=players[toAttack].x,players[toAttack].y
+                if i['type'] == 'armour':
+                    while not checkitem(tryx,tryy):
+                        tryx+=1
+                if i['type'] == 'weapon':
+                    while not checkitem(tryx,tryy):
+                        tryy-=1
+                i['x'],i['y'] = tryx,tryy
+                items.append(i)
+            socketio.emit('item_positions', items)    
+            socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})                                                      
             players[toAttack].x = 9999
             players[toAttack].y = 9999 
             return 1
@@ -38,7 +58,7 @@ def attack(toAttack,attacker):
 
 def findTarget(player):
     for i in range(len(players)):
-        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range:
+        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2:
             if player.direction == 'W' and player.y - players[i].y > 0:
                 return attack(i,player)
             elif player.direction == 'S' and players[i].y - player.y > 0:
@@ -47,6 +67,7 @@ def findTarget(player):
                 return attack(i,player)
             elif player.direction == 'D' and players[i].x - player.x > 0:
                 return attack(i,player)
+    return 0
 
 
 rarities=['common','uncommon','rare','epic','legendary']
@@ -59,7 +80,6 @@ def interact(player):
     for i in range(len(items)):
         if items[i]['x'] == player.x and items[i]['y'] == player.y:
             if items[i]['type'] == 'healing':
-                # improve logic here
                 player.hp += healingStats[rarities.index(items[i]['rarity'])]
                 if player.hp > player.maxhp:
                     player.hp = player.maxhp
@@ -75,13 +95,14 @@ def interact(player):
             items.pop(i)
             socketio.emit('item_positions', items)
             return player
+    return player
 
 
 def createItem(rarity,type):
     item={}
     item['x'] = 0
     item['y'] = 0
-    while grid[item['y']][item['x']] != 0:
+    while not checkitem(item['x'],item['y']):
         item['x'] = randint(0,gridlx-1)
         item['y'] = randint(0,gridlx-1)
     item['rarity'] = rarity
@@ -112,6 +133,7 @@ class Player:
         self.proficiency = 0
         self.direction = 'W'
         self.killCount = 0
+        print(self.items)
     def move(self, charin):
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
@@ -135,6 +157,7 @@ class Player:
             print(self.proficiency)
         elif charin == "E":
             self = interact(self)
+            print(self)
             print(self.items)
     def to_dict(self):
         return {
