@@ -6,6 +6,7 @@ import math
 
 gridlx = 80
 gridly = 80
+
 grid = [[0 for i in range(gridlx)] for j in range(gridly)]
 for i in range(gridly):
     if i == 0 or i == gridly-1:
@@ -187,8 +188,7 @@ items = []
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key='notVerySecret'
-socketio = SocketIO(app)
-CORS(app)
+socketio = SocketIO(app, async_mode='eventlet')  # or 'gevent'
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
