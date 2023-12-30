@@ -3,7 +3,7 @@ var canvas = document.getElementById("canvas");
     var ctx = canvas.getContext("2d");
     ctx.font = "20px Arial";
     ctx.textAlign = "center";
-    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    var socket = io.connect(document.location.protocol+'//' + document.domain + ':' + location.port);
     var id;
     var grid;
     var playerpos;
