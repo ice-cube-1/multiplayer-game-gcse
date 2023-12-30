@@ -83,16 +83,29 @@ def interact(player):
                 player.hp += healingStats[rarities.index(items[i]['rarity'])]
                 if player.hp > player.maxhp:
                     player.hp = player.maxhp
+                items.pop(i)
+                createItem(items[i]['rarity'],"healing")
             else:
-                player.items.append(items[i])
-                if items[i]['type'] == 'armour':
-                    player.ac = armourStats[rarities.index(items[i]['rarity'])]
+                pickedup = items[i]
+                hadType = False
+                for j in range(len(player.items)):
+                    if player.items[j]['type'] == items[i]['type']:
+                        player.items[j]['weapontype'],items[i]['weapontype'] = items[i]['weapontype'],player.items[j]['weapontype']
+                        player.items[j]['type'],items[i]['type'] = items[i]['type'],player.items[j]['type']
+                        player.items[j]['rarity'],items[i]['rarity'] = items[i]['rarity'],player.items[j]['rarity']
+                        hadType = True
+                if not hadType:
+                    player.items.append(items[i])
+                    items.pop(i)
+
+                
+                if pickedup['type'] == 'armour':
+                    player.ac = armourStats[rarities.index(pickedup['rarity'])]
                 else:
-                    player.damage = weaponTypes[items[i]['weapontype']][0]
-                    player.range = weaponTypes[items[i]['weapontype']][1]
-                    player.attackSpeed = weaponTypes[items[i]['weapontype']][2]
+                    player.damage = weaponTypes[pickedup['weapontype']][0]
+                    player.range = weaponTypes[pickedup['weapontype']][1]
+                    player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
                     player.damageMultiplier = weaponMultiplier[rarities.index(items[i]['rarity'])]
-            items.pop(i)
             socketio.emit('item_positions', items)
             return player
     return player
@@ -210,6 +223,7 @@ def handle_connect():
             items.append(createItem("legendary",'healing'))
             items.append(createItem("legendary",'armour'))
             items.append(createItem("legendary",'weapon'))
+    socketio.emit('item_positions', items)
     playerName = session.get('playerName','Guest')
     client_id = -1
     for i in range(len(players)):
@@ -221,7 +235,6 @@ def handle_connect():
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
-    socketio.emit('item_positions', items)
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
 
