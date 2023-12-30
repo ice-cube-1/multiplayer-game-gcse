@@ -1,11 +1,27 @@
-from random import randint,choice
-from flask import Flask, render_template, request, redirect, url_for, session
-from flask_socketio import SocketIO, join_room
-from flask_cors import CORS
+import asyncio
+import json
 import math
+from random import randint, choice
+import websockets
+from flask import Flask, render_template, request, redirect, url_for, session
 
 gridlx = 80
 gridly = 80
+
+grid = [[0 for i in range(gridlx)] for j in range(gridly)]
+for i in range(gridly):
+    if i == 0 or i == gridly - 1:
+        grid[i] = [1 for i in range(gridlx)]
+    else:
+        grid[i][-1] = 1
+        grid[i][0] = 1
+    for j in range(gridlx):
+        if randint(0, 9) < 1:
+            grid[i][j] = 1
+
+players = []
+items = []
+websockets_list = set()
 
 grid = [[0 for i in range(gridlx)] for j in range(gridly)]
 for i in range(gridly):
@@ -49,8 +65,8 @@ def attack(toAttack,attacker):
                         tryy-=1
                 i['x'],i['y'] = tryx,tryy
                 items.append(i)
-            socketio.emit('item_positions', items)    
-            socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})                                                      
+            broadcast_item_positions()    
+            broadcast_positions()                                              
             players[toAttack].x = 9999
             players[toAttack].y = 9999 
             return 1
@@ -107,7 +123,7 @@ def interact(player):
                     player.range = weaponTypes[pickedup['weapontype']][1]
                     player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
                     player.damageMultiplier = weaponMultiplier[rarities.index(items[i]['rarity'])]
-            socketio.emit('item_positions', items)
+            broadcast_item_positions()
             return player
     return player
 
@@ -182,13 +198,56 @@ class Player:
             'hp': self.hp
         }
 
-players = []
-items = []
 
+async def handle_connection(websocket, path):
+    print('iasfd')
+    websockets_list.add(websocket)
+    client_id = -1
+    playerName = session.get('playerName', 'Guest')
+    for i in range(len(players)):
+        if players[i].name == playerName:
+            client_id = i
+    if client_id == -1:
+        players.append(Player(playerName))
+        client_id = len(players) - 1
+
+    await websocket.send(json.dumps({'client_id': client_id}))
+    await websocket.send(json.dumps({'base_grid': grid}))
+    await broadcast_item_positions()
+    await broadcast_positions()
+
+    try:
+        async for message in websocket:
+            data = json.loads(message)
+            players[data['id']].move(data['direction'])
+            await asyncio.gather(
+                broadcast_positions(),
+                broadcast_item_positions(),
+            )
+    except websockets.exceptions.ConnectionClosedError:
+        # Handle client disconnection
+        pass
+    finally:
+        websockets_list.remove(websocket)
+        players.pop(client_id)
+        await broadcast_positions()
+
+async def broadcast_positions():
+    await asyncio.gather(
+        *[websocket.send(json.dumps({'new_positions': {'objects': [p.to_dict() for p in players]}})) for websocket in websockets_list],
+        return_exceptions=True,
+    )
+
+async def broadcast_item_positions():
+    await asyncio.gather(
+        *[websocket.send(json.dumps({'item_positions': items})) for websocket in websockets_list],
+        return_exceptions=True,
+    )
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key='notVerySecret'
-socketio = SocketIO(app)
+players = []
+items = []
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -201,48 +260,12 @@ def index():
 def main():
     return render_template('main.html')
 
-@socketio.on('connect')
-def handle_connect():
-    for i in range(16):
-        items.append(createItem("common",'healing'))
-        items.append(createItem("common",'armour'))
-        items.append(createItem("common",'weapon'))    
-        if i%2==0:
-            items.append(createItem("uncommon",'healing'))
-            items.append(createItem("uncommon",'armour'))            
-            items.append(createItem("uncommon",'weapon'))            
-        if i%4==0:
-            items.append(createItem("rare",'healing'))
-            items.append(createItem("rare",'armour'))
-            items.append(createItem("rare",'weapon'))
-        if i%8==0:
-            items.append(createItem("epic",'healing'))
-            items.append(createItem("epic",'armour'))
-            items.append(createItem("epic",'weapon'))
-        if i%16==0:
-            items.append(createItem("legendary",'healing'))
-            items.append(createItem("legendary",'armour'))
-            items.append(createItem("legendary",'weapon'))
-    socketio.emit('item_positions', items)
-    playerName = session.get('playerName','Guest')
-    client_id = -1
-    for i in range(len(players)):
-        if players[i].name == playerName:
-            client_id = i
-    if client_id == -1:
-        players.append(Player(playerName))
-        client_id = len(players)-1
-    join_room(client_id)
-    socketio.emit('client_id', client_id, room=client_id)
-    socketio.emit('base_grid', grid)
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
+if __name__ == "__main__":
+    # Start the Flask app
+    app.run(debug=True)
 
-@socketio.on('update_position')
-def handle_update_position(data):
-    players[data['id']].move(data['direction'])
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-    
-
-if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', debug=True)
+    # Start the WebSocket server
+    start_server = websockets.serve(handle_connection, "0.0.0.0", 5001)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()

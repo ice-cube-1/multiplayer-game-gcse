@@ -3,3 +3,4 @@ Flask-Cors==4.0.0
 Flask-SocketIO==5.3.6
 Werkzeug==2.2.2
 eventlet==0.34.2
+websockets==12.0
