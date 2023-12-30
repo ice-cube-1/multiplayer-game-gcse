@@ -14,6 +14,18 @@ var canvas = document.getElementById("canvas");
     var gridToRender = [];
     var screensize = [20,20];
     var lastAttack = Date.now()
+    var imageCache = {}
+    function loadOrCacheImg(url) {
+        if(imageCache[url]) {
+            console.log(`Returning pre-cached image ${url}`)
+            return imageCache[url]
+        } else {
+            var img = new Image();
+            img.src = url;
+            imageCache[url]=img
+            console.log(`Adding new image to cache ${url}`)
+        }
+    }
     socket.on('base_grid', function(data) {
         grid = data
     });
@@ -70,8 +82,7 @@ var canvas = document.getElementById("canvas");
         }      
         for (let i = 0; i<items.length; i++) {
             if ((0 <= items[i]['x'] - screenxoffset && items[i]['x'] - screenxoffset < screensize[0]) && (0 <= items[i]['y'] - screenyoffset && items[i]['y'] - screenyoffset < screensize[1])) {
-                var img = new Image();
-                img.src = `static/items-images/${items[i]['type']}${items[i]['weapontype']}/${items[i]['rarity']}.png`;
+                var img = loadOrCacheImg(`static/items-images/${items[i]['type']}${items[i]['weapontype']}/${items[i]['rarity']}.png`);
                 ctx.drawImage(img, (items[i]['x'] - screenxoffset) * scale, (items[i]['y'] - screenyoffset) * scale,scale,scale);
             }
         }
