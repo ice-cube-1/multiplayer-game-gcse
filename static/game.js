@@ -13,12 +13,29 @@ var playerpos;
 var gridToRender = [];
 var screensize = [20,20];
 var lastAttack = Date.now()
+var playersinfo = [];
 socket.on('PlayersInfo',function(data) {
-    console.log(data)
+    playersinfo=data
+});
+socket.on('specificPlayerInfo',function(data) {
     infoctx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
-    for (let i=0; i<data.length; i++) {
-        infoctx.fillStyle = `rgb(${data[i][1].join(',')})`;
-        infoctx.fillText(data[i][0],10,(i+1)*20)
+    for (let i=0; i<playersinfo.length; i++) {
+        infoctx.fillStyle = `rgb(${playersinfo[i][1].join(',')})`;
+        infoctx.fillText(playersinfo[i][0],10,(i+1)*20)
+    }
+    info=data[id]
+    infoctx.fillStyle = 'black'
+    for (let i=0; i<2; i++) {
+        info[i] = info[i].split('\n')
+        for (var j = 0; j<info[i].length; j++) {
+            console.log(info[i][j])
+            infoctx.fillText(info[i][j],(i*150)+10,600+(j+1)*20)
+        }
+    }
+    for (let i=0; i<info[2].length; i++) {
+        var img = new Image();
+        img.src = `static/items-images/${info[2][i]['type']}${info[2][i]['weapontype']}/${info[2][i]['rarity']}.png`;
+        infoctx.drawImage(img,(i*150)+10,700,60,60)
     }
 });
 socket.on('base_grid', function(data) {
@@ -71,7 +88,6 @@ socket.on('new_positions', function(data) {
     }
     for (let i = 0; i<playerpos.length; i++) {
         if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1]) && playerpos[i]['visible'] == true) {
-            console.log(playerpos[i]['hp'],'test')
             ctx.fillText(playerpos[i]['hp'],(playerpos[i]['x']-screenxoffset+0.5)*scale,(playerpos[i]['y']-screenyoffset+0.5)*scale+10)
         }
     }      
@@ -96,7 +112,6 @@ $(document).keydown(function(e) {
             if(currentTime - lastAttack < playerpos[id]['attackSpeed']) {return;}
             lastAttack = currentTime;
             direction = "Space";
-            console.log(playerpos[id]['attackSpeed'])
             break;
         default: return;
     }

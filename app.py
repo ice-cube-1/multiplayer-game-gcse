@@ -77,7 +77,6 @@ healingStats = [2,3,5,7,10]
 armourStats = [11,12,13,15,18]
 weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
 weaponMultiplier = [1,1.25,1.5,2,3]
-proficiencyBonuses = [-1,0,1,2,4,8]
 def interact(player):
     for i in range(len(items)):
         if items[i]['x'] == player.x and items[i]['y'] == player.y:
@@ -88,7 +87,6 @@ def interact(player):
                 items.pop(i)
                 createItem(items[i]['rarity'],"healing")
             else:
-                pickedup = items[i]
                 hadType = False
                 for j in range(len(player.items)):
                     if player.items[j]['type'] == items[i]['type']:
@@ -99,15 +97,16 @@ def interact(player):
                 if not hadType:
                     player.items.append(items[i])
                     items.pop(i)
-
-                
-                if pickedup['type'] == 'armour':
-                    player.ac = armourStats[rarities.index(pickedup['rarity'])]
-                else:
-                    player.damage = weaponTypes[pickedup['weapontype']][0]
-                    player.range = weaponTypes[pickedup['weapontype']][1]
-                    player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
-                    player.damageMultiplier = weaponMultiplier[rarities.index(items[i]['rarity'])]
+                for pickedup in player.items:
+                    print(pickedup)
+                    if pickedup['type'] == 'armour':
+                        player.ac = armourStats[rarities.index(pickedup['rarity'])]
+                    else:
+                        player.damage = weaponTypes[pickedup['weapontype']][0]
+                        player.range = weaponTypes[pickedup['weapontype']][1]
+                        player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
+                        player.damageMultiplier = weaponMultiplier[rarities.index(pickedup['rarity'])]
+                        print(player.damage,player.damageMultiplier)
             socketio.emit('item_positions', items)
             return player
     return player
@@ -157,7 +156,6 @@ class Player:
         self.killCount = 0
         self.visible = True
         self.lastMove=datetime.now()
-        print(self.items)
     def move(self, charin):
         self.lastMove=datetime.now()
         if self.hp > 0:
@@ -183,11 +181,8 @@ class Player:
             playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
             socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
             self.proficiency = math.floor(math.log(self.killCount+1,2))
-            print(self.proficiency)
         elif charin == "E":
             self = interact(self)
-            print(self)
-            print(self.items)
     def to_dict(self):
         return {
             'x': self.x,
@@ -203,6 +198,10 @@ class Player:
         else:
             status = "offline"
         return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
+    def getInfoForSpecificPlayer(self):
+        return [f'{self.name}:\nLevel: {self.proficiency}({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}',
+                f'\nDamage: {math.floor(self.damageMultiplier)}-{math.floor(self.damageMultiplier*self.damage)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s',
+                self.items]
 
 players = []
 items = []
@@ -266,6 +265,7 @@ def handle_connect():
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
     playersInfo = [i.getInfoInString() for i in players if i.hp>0]
+    socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
@@ -275,9 +275,9 @@ def handle_update_position(data):
     zombify()
     playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]}
-)
-    
+    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+    socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
+
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port='5000',host='0.0.0.0')
