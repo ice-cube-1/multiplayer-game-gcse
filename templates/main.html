@@ -8,7 +8,21 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
 </head>
 <body>
-    <canvas id="canvas" width="800" height="800" style="border:1px solid #000;"></canvas>
+    <table>
+        <tr>
+            <td>
+                <canvas id="gameCanvas" width="800" height="800" style="border:1px solid #000;"></canvas>
+            </td>
+            <td>
+                <canvas id="infoCanvas" width="300" height="800" style="border:1px solid #000;"></canvas>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Press WASD to move, E to interact, Space to attack
+            </td>
+        </tr>
+    </table>
 <script src="static/game.js"></script>
 </body>
 </html>

@@ -38,6 +38,7 @@ def attack(toAttack,attacker):
     if rollDice(20,1)+attacker.proficiency > players[toAttack].ac:
         players[toAttack].hp-=rollDice(attacker.damage,attacker.damageMultiplier)+attacker.proficiency
         if players[toAttack].hp <= 0:
+            players[toAttack].hp = 0
             for i in players[toAttack].items:
                 tryx,tryy=players[toAttack].x,players[toAttack].y
                 if i['type'] == 'armour':
@@ -51,7 +52,7 @@ def attack(toAttack,attacker):
             socketio.emit('item_positions', items)    
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})                                                      
             players[toAttack].x = 9999
-            players[toAttack].y = 9999 
+            players[toAttack].y = 9999
             return 1
     return 0
 
@@ -167,6 +168,7 @@ class Player:
             self.direction = 'D'
         elif charin == "Space":
             self.killCount += findTarget(self)
+            socketio.emit('PlayersInfo',[i.getInfoInString() for i in players])
             self.proficiency = math.floor(math.log(self.killCount+1,2))
             print(self.proficiency)
         elif charin == "E":
@@ -181,6 +183,8 @@ class Player:
             'attackSpeed': self.attackSpeed*1000,
             'hp': self.hp
         }
+    def getInfoInString(self):
+        return [f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills', self.color, self.killCount]
 
 players = []
 items = []
@@ -241,6 +245,7 @@ def handle_connect():
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
+    socketio.emit('PlayersInfo',[i.getInfoInString() for i in players])
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
 
