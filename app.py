@@ -168,7 +168,8 @@ class Player:
             self.direction = 'D'
         elif charin == "Space":
             self.killCount += findTarget(self)
-            socketio.emit('PlayersInfo',[i.getInfoInString() for i in players])
+            playersInfo = [i.getInfoInString() for i in players]
+            socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
             self.proficiency = math.floor(math.log(self.killCount+1,2))
             print(self.proficiency)
         elif charin == "E":
@@ -184,7 +185,7 @@ class Player:
             'hp': self.hp
         }
     def getInfoInString(self):
-        return [f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills', self.color, self.killCount]
+        return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills', self.color, self.killCount
 
 players = []
 items = []
@@ -245,7 +246,8 @@ def handle_connect():
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
-    socketio.emit('PlayersInfo',[i.getInfoInString() for i in players])
+    playersInfo = [i.getInfoInString() for i in players]
+    socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
 
