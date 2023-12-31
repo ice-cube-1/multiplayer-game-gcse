@@ -127,13 +127,14 @@ def createItem(rarity,type):
     return item   
 
 class Player:
-    def __init__(self,name):
+    def __init__(self,name,password):
         self.x = 0
         self.y = 0
         while grid[self.y][self.x] != 0:
             self.x = randint(0,gridlx-1)
             self.y = randint(0,gridlx-1)
         self.name = name
+        self.password = password
         self.color = [randint(0,255),randint(0,255),randint(0,255)]
         self.hp = 40
         self.maxhp = 40
@@ -213,9 +214,21 @@ CORS(app)
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
-        session['playerName'] = request.form.get('player_name')
+        playerName = request.form.get('player_name')
+        playerPassword = request.form.get('password')
+        client_id = -1
+        for i in range(len(players)):
+            if players[i].name == playerName:
+                if players[i].password == playerPassword:
+                    client_id = i
+                else:
+                    return render_template('index.html',incorrectPassword=True)
+        if client_id == -1:
+            players.append(Player(playerName,playerPassword))
+            client_id = len(players)-1
+        session['ClientID'] = client_id
         return redirect(url_for('main'))
-    return render_template('index.html')
+    return render_template('index.html',incorrectPassword=False)
 
 @app.route('/main')
 def main():
@@ -224,14 +237,7 @@ def main():
 @socketio.on('connect')
 def handle_connect():
     socketio.emit('item_positions', items)
-    playerName = session.get('playerName','Guest')
-    client_id = -1
-    for i in range(len(players)):
-        if players[i].name == playerName:
-            client_id = i
-    if client_id == -1:
-        players.append(Player(playerName))
-        client_id = len(players)-1
+    client_id = session.get('ClientID','Guest')
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
