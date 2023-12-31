@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 import math
+from datetime import datetime
 
 gridlx = 80
 gridly = 80
@@ -51,15 +52,15 @@ def attack(toAttack,attacker):
                 items.append(i)
             socketio.emit('item_positions', items)    
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})                                                      
-            players[toAttack].x = 9999
-            players[toAttack].y = 9999
+            players[toAttack].visible = False
+
             return 1
     return 0
 
 
 def findTarget(player):
     for i in range(len(players)):
-        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2:
+        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True:
             if player.direction == 'W' and player.y - players[i].y > 0:
                 return attack(i,player)
             elif player.direction == 'S' and players[i].y - player.y > 0:
@@ -111,6 +112,12 @@ def interact(player):
             return player
     return player
 
+def zombify():
+    currentTime=datetime.now()
+    for i in range(len(players)):
+        delta = currentTime-players[i].lastMove
+        if delta.total_seconds() > 120:
+            players[i].visible = False
 
 def createItem(rarity,type):
     item={}
@@ -148,8 +155,13 @@ class Player:
         self.proficiency = 0
         self.direction = 'W'
         self.killCount = 0
+        self.visible = True
+        self.lastMove=datetime.now()
         print(self.items)
     def move(self, charin):
+        self.lastMove=datetime.now()
+        if self.hp > 0:
+            self.visible = True
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
                 self.y-=1
@@ -168,7 +180,7 @@ class Player:
             self.direction = 'D'
         elif charin == "Space":
             self.killCount += findTarget(self)
-            playersInfo = [i.getInfoInString() for i in players]
+            playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
             socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
             self.proficiency = math.floor(math.log(self.killCount+1,2))
             print(self.proficiency)
@@ -182,10 +194,15 @@ class Player:
             'y': self.y,
             'color': self.color,
             'attackSpeed': self.attackSpeed*1000,
-            'hp': self.hp
+            'hp': self.hp,
+            'visible': self.visible
         }
     def getInfoInString(self):
-        return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills', self.color, self.killCount
+        if self.visible:
+            status = "online"
+        else:
+            status = "offline"
+        return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
 
 players = []
 items = []
@@ -243,18 +260,28 @@ def main():
 def handle_connect():
     socketio.emit('item_positions', items)
     client_id = session.get('ClientID','Guest')
+    if players[client_id].hp > 0:
+        players[client_id].visible = True
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
-    playersInfo = [i.getInfoInString() for i in players]
+    playersInfo = [i.getInfoInString() for i in players if i.hp>0]
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
+# @socketio.on('disconnect')
+# def handle_disconnect():
+#     client_id = session.get('ClientID','Guest')
+#     players[client_id].visible = False
 
 @socketio.on('update_position')
 def handle_update_position(data):
     players[data['id']].move(data['direction'])
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+    zombify()
+    playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
+    socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
+    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]}
+)
     
 
 if __name__ == '__main__':
