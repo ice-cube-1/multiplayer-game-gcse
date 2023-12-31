@@ -184,6 +184,26 @@ class Player:
 players = []
 items = []
 
+for i in range(16):
+    items.append(createItem("common",'healing'))
+    items.append(createItem("common",'armour'))
+    items.append(createItem("common",'weapon'))    
+    if i%2==0:
+        items.append(createItem("uncommon",'healing'))
+        items.append(createItem("uncommon",'armour'))            
+        items.append(createItem("uncommon",'weapon'))            
+    if i%4==0:
+        items.append(createItem("rare",'healing'))
+        items.append(createItem("rare",'armour'))
+        items.append(createItem("rare",'weapon'))
+    if i%8==0:
+        items.append(createItem("epic",'healing'))
+        items.append(createItem("epic",'armour'))
+        items.append(createItem("epic",'weapon'))
+    if i%16==0:
+        items.append(createItem("legendary",'healing'))
+        items.append(createItem("legendary",'armour'))
+        items.append(createItem("legendary",'weapon'))
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key='notVerySecret'
@@ -203,26 +223,6 @@ def main():
 
 @socketio.on('connect')
 def handle_connect():
-    for i in range(16):
-        items.append(createItem("common",'healing'))
-        items.append(createItem("common",'armour'))
-        items.append(createItem("common",'weapon'))    
-        if i%2==0:
-            items.append(createItem("uncommon",'healing'))
-            items.append(createItem("uncommon",'armour'))            
-            items.append(createItem("uncommon",'weapon'))            
-        if i%4==0:
-            items.append(createItem("rare",'healing'))
-            items.append(createItem("rare",'armour'))
-            items.append(createItem("rare",'weapon'))
-        if i%8==0:
-            items.append(createItem("epic",'healing'))
-            items.append(createItem("epic",'armour'))
-            items.append(createItem("epic",'weapon'))
-        if i%16==0:
-            items.append(createItem("legendary",'healing'))
-            items.append(createItem("legendary",'armour'))
-            items.append(createItem("legendary",'weapon'))
     socketio.emit('item_positions', items)
     playerName = session.get('playerName','Guest')
     client_id = -1
