@@ -50,7 +50,8 @@ socket.on('message', function(msgs) {
     for (var i=0;i<msgs.length;i++) {
         msg = msgs[i]
         var li = document.createElement('li');
-        li.appendChild(document.createTextNode(msg));
+        li.appendChild(document.createTextNode(msg[0]));
+        li.style.color = `rgb(${msg[1].join(',')})`;
         ul.appendChild(li)
         messageCount++;
         if (messageCount > 40) {
@@ -62,8 +63,8 @@ socket.on('message', function(msgs) {
 });
 document.getElementById('form').onsubmit = function() {
     var input = document.getElementById('input');
-    console.log(String(id)+': '+input.value)
-    socket.emit('message', players[id]['name']+': '+input.value);
+    console.log('message', playerpos[id]['name']+': '+input.value)
+    socket.emit('message', (playerpos[id]['name']+': '+input.value,playerpos[id]['color']));
     input.value = '';
     return false;
 };

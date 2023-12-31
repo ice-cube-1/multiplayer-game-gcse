@@ -190,7 +190,8 @@ class Player:
             'color': self.color,
             'attackSpeed': self.attackSpeed*1000,
             'hp': self.hp,
-            'visible': self.visible
+            'visible': self.visible,
+            'name':str(self.name)
         }
     def getInfoInString(self):
         if self.visible:
@@ -259,7 +260,8 @@ def main():
 @socketio.on('message')
 def handle_message(msg):
     messages.append(msg)
-    socketio.emit('message', [msg])
+    print(messages)
+    socketio.emit('message', tuple(msg))
 
 @socketio.on('connect')
 def handle_connect():
