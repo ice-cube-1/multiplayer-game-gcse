@@ -1,0 +1,14 @@
+td.form-td {
+    padding: 15px;
+    vertical-align: bottom;
+}
+#input {
+    width: 300px;
+    display: inline-block;
+ }
+
+ul#messages {
+    margin: 0;
+    padding: 5px; 
+    list-style-type: none; 
+ }

@@ -14,6 +14,8 @@ var gridToRender = [];
 var screensize = [20,20];
 var lastAttack = Date.now()
 var playersinfo = [];
+var ul = document.getElementById('messages');
+var messageCount = 0;
 socket.on('PlayersInfo',function(data) {
     playersinfo=data
 });
@@ -38,6 +40,33 @@ socket.on('specificPlayerInfo',function(data) {
         infoctx.drawImage(img,(i*150)+10,700,60,60)
     }
 });
+var inputFocused = false;
+
+function setInputFocus(isFocused) {
+    inputFocused = isFocused;
+}
+
+socket.on('message', function(msgs) {
+    for (var i=0;i<msgs.length;i++) {
+        msg = msgs[i]
+        var li = document.createElement('li');
+        li.appendChild(document.createTextNode(msg));
+        ul.appendChild(li)
+        messageCount++;
+        if (messageCount > 40) {
+            var lastLi = ul.firstChild;
+            ul.removeChild(lastLi);
+            messageCount--;
+        }
+    }
+});
+document.getElementById('form').onsubmit = function() {
+    var input = document.getElementById('input');
+    console.log(String(id)+': '+input.value)
+    socket.emit('message', players[id]['name']+': '+input.value);
+    input.value = '';
+    return false;
+};
 socket.on('base_grid', function(data) {
     grid = data
 });
@@ -100,6 +129,9 @@ socket.on('new_positions', function(data) {
     }
 });
 $(document).keydown(function(e) {
+    if (inputFocused) {
+        return;
+    }
     var direction = '';
     var currentTime = Date.now();
     switch(e.which) {

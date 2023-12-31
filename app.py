@@ -205,6 +205,7 @@ class Player:
 
 players = []
 items = []
+messages = []
 
 for i in range(16):
     items.append(createItem("common",'healing'))
@@ -255,6 +256,11 @@ def index():
 def main():
     return render_template('main.html')
 
+@socketio.on('message')
+def handle_message(msg):
+    messages.append(msg)
+    socketio.emit('message', [msg])
+
 @socketio.on('connect')
 def handle_connect():
     socketio.emit('item_positions', items)
@@ -268,6 +274,7 @@ def handle_connect():
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+    socketio.emit('message',messages[:40])
 
 @socketio.on('update_position')
 def handle_update_position(data):
