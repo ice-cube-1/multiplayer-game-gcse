@@ -269,11 +269,6 @@ def handle_connect():
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
-# @socketio.on('disconnect')
-# def handle_disconnect():
-#     client_id = session.get('ClientID','Guest')
-#     players[client_id].visible = False
-
 @socketio.on('update_position')
 def handle_update_position(data):
     players[data['id']].move(data['direction'])
