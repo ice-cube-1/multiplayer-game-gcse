@@ -28,7 +28,7 @@ def rollDice(sides,number):
     return sum([randint(1,sides) for i in range(int(number*4))])//4
 
 def attack(toAttack,attacker):
-    if rollDice(20,1)+attacker.proficiency > players[toAttack].ac:
+    if rollDice(40,1)+attacker.proficiency > players[toAttack].ac:
         players[toAttack].hp-=rollDice(attacker.damage,attacker.damageMultiplier)+attacker.proficiency
         if players[toAttack].hp <= 0:
             players[toAttack].hp = 0
@@ -45,7 +45,8 @@ def attack(toAttack,attacker):
             socketio.emit('item_positions', items)    
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})                                                      
             players[toAttack].visible = False
-
+            socketio.emit('message', [[f'{players[toAttack].name} was killed by {attacker.name}',"black"]])
+            messages.append([f'{players[toAttack].name} was killed by {attacker.name}',"black"])
             return 1
     return 0
 
@@ -66,7 +67,7 @@ def findTarget(player):
 
 rarities=['common','uncommon','rare','epic','legendary']
 healingStats = [2,3,5,7,10]
-armourStats = [11,12,13,15,18]
+armourStats = [11,13,15,20,25]
 weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
 weaponMultiplier = [1,1.25,1.5,2,3]
 def interact(player):
@@ -77,7 +78,7 @@ def interact(player):
                 if player.hp > player.maxhp:
                     player.hp = player.maxhp
                 items.pop(i)
-                createItem(items[i]['rarity'],"healing")
+                items.append(createItem(items[i]['rarity'],"healing"))
             else:
                 hadType = False
                 for j in range(len(player.items)):
@@ -109,8 +110,11 @@ def zombify():
     currentTime=datetime.now()
     for i in range(len(players)):
         delta = currentTime-players[i].lastMove
-        if delta.total_seconds() > 120:
+        if delta.total_seconds() > 120 and players[i].visible == True:
             players[i].visible = False
+            messages.append([f'{players[i].name} has gone offline',"black"])
+            socketio.emit('message', [[f'{players[i].name} has gone offline',"black"]])
+
 
 def createItem(rarity,type):
     item={}
@@ -293,7 +297,9 @@ def handle_connect():
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-    socketio.emit('message',messages[:40])
+    messages.append([f'{players[client_id].name} has joined',"black"])
+    socketio.emit('message',messages[len(messages)-40:])
+
 
 @socketio.on('update_position')
 def handle_update_position(data):

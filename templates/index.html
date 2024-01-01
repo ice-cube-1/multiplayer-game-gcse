@@ -6,9 +6,9 @@
     <title>Join Game</title>
 </head>
 <body>
-    <h1>Enter your name and join the game</h1>
+    <h1>Sign up / log in:</h1>
     <form action="/" method="post">
-        <label for="player_name">Name:</label>
+        <label for="player_name">Username:</label>
         <input type="text" id="player_name" name="player_name" required>
     <br/>
         <label for="password">Password:</label>
@@ -16,10 +16,10 @@
         <button type="submit">Join</button>
     </form>
     {% if incorrectPassword == True%}
-    That username in in use with a different password<br/>
+    <strong>That username is in use with a different password</strong><br/>
     {% endif %}
     Please use the desktop site and a low-security password<br/>
-    Your account will be auto-generated if your username doesn't have one yet<br/>
+    Your account will be auto-generated if your username doesn't have one linked yet<br/>
     In case it's of interest, source code can be found <a href="https://github.com/ice-cube-1/multiplayer-game-gcse">here</a>
 
 
