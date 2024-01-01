@@ -7,4 +7,10 @@
 
 To refresh the server data:
 sudo systemctl stop multiplayer-game.service
-sudo rm [your path]/multiplayer-game-gcse/data/*.*
+git stash
+git pull
+nano app.py
+[swap commenting of last lines], save, exit
+sudo rm -r data
+sudo systemctl start multiplayer-game.service
+sudo systemctl status multiplayer-game.service

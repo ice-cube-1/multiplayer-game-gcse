@@ -298,7 +298,7 @@ def handle_connect():
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
     messages.append([f'{players[client_id].name} has joined',"black"])
-    socketio.emit('message',messages[len(messages)-40:])
+    socketio.emit('message',messages[len(messages)-40:], room=client_id)
 
 
 @socketio.on('update_position')
