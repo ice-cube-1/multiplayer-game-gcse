@@ -4,3 +4,7 @@
 4. sudo systemctl daemon-reload
 5. sudo systemctl enable multiplayer-game.service
 6. sudo systemctl start multiplayer-game.service
+
+To refresh the server data:
+sudo systemctl stop multiplayer-game.service
+sudo rm [your path]/multiplayer-game-gcse/data/*.*
