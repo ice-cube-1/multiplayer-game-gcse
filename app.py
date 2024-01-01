@@ -47,8 +47,8 @@ def attack(toAttack,attacker):
             storeColor = players[toAttack].color                                                      
             players[toAttack] = Player(players[toAttack].name,players[toAttack].password)
             players[toAttack].color = storeColor
-            socketio.emit('message', [[f'{players[toAttack].name} was killed by {attacker.name}',"black"]])
             messages.append([f'{players[toAttack].name} was killed by {attacker.name}',"black"])
+            socketio.emit('message',messages[-1])
             return 1
     return 0
 
@@ -69,7 +69,7 @@ def findTarget(player):
 
 rarities=['common','uncommon','rare','epic','legendary']
 healingStats = [2,3,5,7,10]
-armourStats = [11,13,15,20,25]
+armourStats = [12,14,16,19,22]
 weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
 weaponMultiplier = [1,1.25,1.5,2,3]
 def interact(player):
@@ -79,8 +79,8 @@ def interact(player):
                 player.hp += healingStats[rarities.index(items[i]['rarity'])]
                 if player.hp > player.maxhp:
                     player.hp = player.maxhp
-                items.pop(i)
                 items.append(createItem(items[i]['rarity'],"healing"))
+                items.pop(i)
             else:
                 hadType = False
                 for j in range(len(player.items)):
@@ -115,7 +115,7 @@ def zombify():
         if delta.total_seconds() > 120 and players[i].visible == True:
             players[i].visible = False
             messages.append([f'{players[i].name} has gone offline',"black"])
-            socketio.emit('message', [[f'{players[i].name} has gone offline',"black"]])
+            socketio.emit('message',messages[-1])
 
 
 def createItem(rarity,type):
@@ -283,7 +283,7 @@ def main():
 @socketio.on('message')
 def handle_message(msg):
     messages.append(msg)
-    socketio.emit('message', [msg])
+    socketio.emit('message',messages[-1])
     open('data/messageinfo.json','w').write(jsonpickle.encode(messages))
 
 @socketio.on('connect')
@@ -299,8 +299,9 @@ def handle_connect():
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-    messages.append([f'{players[client_id].name} has joined',"black"])
     socketio.emit('message',messages[len(messages)-40:], room=client_id)
+    messages.append([f'{players[client_id].name} has joined',"black"])
+    socketio.emit('message',messages[-1])
 
 
 @socketio.on('update_position')
