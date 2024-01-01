@@ -43,8 +43,10 @@ def attack(toAttack,attacker):
                 i['x'],i['y'] = tryx,tryy
                 items.append(i)
             socketio.emit('item_positions', items)    
-            socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})                                                      
-            players[toAttack].visible = False
+            socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
+            storeColor = players[toAttack].color                                                      
+            players[toAttack] = Player(players[toAttack].name,players[toAttack].password)
+            players[toAttack].color = storeColor
             socketio.emit('message', [[f'{players[toAttack].name} was killed by {attacker.name}',"black"]])
             messages.append([f'{players[toAttack].name} was killed by {attacker.name}',"black"])
             return 1
