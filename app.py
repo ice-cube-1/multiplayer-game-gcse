@@ -195,7 +195,7 @@ class Player:
         return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
     def getInfoForSpecificPlayer(self):
         return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}',
-                f'\nDamage: {math.floor(self.damageMultiplier)}-{math.floor(self.damageMultiplier*self.damage)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s',
+                f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s',
                 self.items]
 
 if not os.path.exists('data'):
@@ -307,4 +307,5 @@ def handle_update_position(data):
     open('data/itemsinfo.json','w').write(jsonpickle.encode(items))
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port='5000',host='0.0.0.0')
+    socketio.run(app, debug=True, port='5000') # LOCALTEST
+    #socketio.run(app, debug=True, port='80',host='0.0.0.0',allow_unsafe_werkzeug=True) # SERVER
