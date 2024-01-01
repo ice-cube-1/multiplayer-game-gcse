@@ -22,7 +22,7 @@ socket.on('PlayersInfo',function(data) {
 socket.on('specificPlayerInfo',function(data) {
     infoctx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
     for (let i=0; i<playersinfo.length; i++) {
-        infoctx.fillStyle = `rgb(${playersinfo[i][1].join(',')})`;
+        infoctx.fillStyle = playersinfo[i][1];
         infoctx.fillText(playersinfo[i][0],10,(i+1)*20)
     }
     info=data[id]
@@ -30,7 +30,6 @@ socket.on('specificPlayerInfo',function(data) {
     for (let i=0; i<2; i++) {
         info[i] = info[i].split('\n')
         for (var j = 0; j<info[i].length; j++) {
-            console.log(info[i][j])
             infoctx.fillText(info[i][j],(i*150)+10,600+(j+1)*20)
         }
     }
@@ -48,10 +47,11 @@ function setInputFocus(isFocused) {
 
 socket.on('message', function(msgs) {
     for (var i=0;i<msgs.length;i++) {
-        msg = msgs[i]
+        var msg = msgs[i]
+        console.log(msg)
         var li = document.createElement('li');
         li.appendChild(document.createTextNode(msg[0]));
-        li.style.color = `rgb(${msg[1].join(',')})`;
+        li.style.color = msg[1];
         ul.appendChild(li)
         messageCount++;
         if (messageCount > 40) {
@@ -63,8 +63,7 @@ socket.on('message', function(msgs) {
 });
 document.getElementById('form').onsubmit = function() {
     var input = document.getElementById('input');
-    console.log('message', playerpos[id]['name']+': '+input.value)
-    socket.emit('message', (playerpos[id]['name']+': '+input.value,playerpos[id]['color']));
+    socket.emit('message', [playerpos[id]['name']+': '+input.value,playerpos[id]['color']]);
     input.value = '';
     return false;
 };
@@ -96,9 +95,9 @@ socket.on('new_positions', function(data) {
         gridToRender[i] = [];
         for (let j = 0; j < screensize[0]; j++) {
             if (grid[i+screenyoffset][j+screenxoffset] == 0) {
-                gridToRender[i][j] = [255,255,255];
+                gridToRender[i][j] = "white";
             } else {
-                gridToRender[i][j] = [0,0,0];
+                gridToRender[i][j] = "black";
             }
         }
     }
@@ -112,7 +111,7 @@ socket.on('new_positions', function(data) {
         for (var j = 0; j < screensize[0]; j++) {
             var x = j * scale;
             var y = i * scale;
-            ctx.fillStyle = `rgb(${gridToRender[i][j].join(',')})`; // Convert RGB array to string
+            ctx.fillStyle = gridToRender[i][j]; // Convert RGB array to string
             ctx.fillRect(x, y, scale, scale);
         }
     }

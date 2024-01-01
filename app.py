@@ -142,7 +142,7 @@ class Player:
             self.y = randint(0,gridlx-1)
         self.name = name
         self.password = password
-        self.color = [randint(0,255),randint(0,255),randint(0,255)]
+        self.color = f'rgb({randint(0,255)},{randint(0,255)},{randint(0,255)})'
         self.hp = 40
         self.maxhp = 40
         self.damage = 4
@@ -261,7 +261,7 @@ def main():
 def handle_message(msg):
     messages.append(msg)
     print(messages)
-    socketio.emit('message', tuple(msg))
+    socketio.emit('message', [msg])
 
 @socketio.on('connect')
 def handle_connect():
