@@ -10,12 +10,17 @@
     <form action="/" method="post">
         <label for="player_name">Name:</label>
         <input type="text" id="player_name" name="player_name" required>
+    <br/>
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required>
         <button type="submit">Join</button>
     </form>
     {% if incorrectPassword == True%}
-    That account has already been created with a different password
+    That username in in use with a different password<br/>
     {% endif %}
+    Please use the desktop site and a low-security password<br/>
+    Your account will be auto-generated if your username doesn't have one yet
+
+
 </body>
 </html>

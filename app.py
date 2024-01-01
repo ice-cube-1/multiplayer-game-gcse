@@ -4,19 +4,11 @@ from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 import math
 from datetime import datetime
+import jsonpickle
+import os
 
 gridlx = 80
 gridly = 80
-grid = [[0 for i in range(gridlx)] for j in range(gridly)]
-for i in range(gridly):
-    if i == 0 or i == gridly-1:
-        grid[i] = [1 for i in range(gridlx)]
-    else:
-        grid[i][-1] = 1
-        grid[i][0] = 1
-    for j in range(gridlx):
-        if randint(0,9) < 1:
-            grid[i][j] = 1
 
 def checkplayer(x,y):
     for i in players:
@@ -107,6 +99,8 @@ def interact(player):
                         player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
                         player.damageMultiplier = weaponMultiplier[rarities.index(pickedup['rarity'])]
                         print(player.damage,player.damageMultiplier)
+            open('data/playerinfo.json','w').write(jsonpickle.encode(players))
+            open('data/itemsinfo.json','w').write(jsonpickle.encode(items))
             socketio.emit('item_positions', items)
             return player
     return player
@@ -200,13 +194,36 @@ class Player:
             status = "offline"
         return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
     def getInfoForSpecificPlayer(self):
-        return [f'{self.name}:\nLevel: {self.proficiency}({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}',
+        return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}',
                 f'\nDamage: {math.floor(self.damageMultiplier)}-{math.floor(self.damageMultiplier*self.damage)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s',
                 self.items]
 
-players = []
-items = []
-messages = []
+if not os.path.exists('data'):
+    os.makedirs('data')
+    grid = [[0 for i in range(gridlx)] for j in range(gridly)]
+    for i in range(gridly):
+        if i == 0 or i == gridly-1:
+            grid[i] = [1 for i in range(gridlx)]
+        else:
+            grid[i][-1] = 1
+            grid[i][0] = 1
+        for j in range(gridlx):
+            if randint(0,9) < 1:
+                grid[i][j] = 1
+    players,items,messages=[],[],[]
+    open('data/grid.json','w').write(jsonpickle.encode(grid))
+    open('data/playerinfo.json','w').write(jsonpickle.encode(players))
+    open('data/itemsinfo.json','w').write(jsonpickle.encode(items))
+    open('data/messageinfo.json','w').write(jsonpickle.encode(messages))
+else:
+    with open('data/grid.json', 'r') as file:
+        grid = jsonpickle.decode(file.read())
+    with open('data/playerinfo.json', 'r') as file:
+        players = jsonpickle.decode(file.read())
+    with open('data/itemsinfo.json', 'r') as file:
+        items = jsonpickle.decode(file.read())
+    with open('data/messageinfo.json', 'r') as file:
+        messages = jsonpickle.decode(file.read())
 
 for i in range(16):
     items.append(createItem("common",'healing'))
@@ -260,8 +277,8 @@ def main():
 @socketio.on('message')
 def handle_message(msg):
     messages.append(msg)
-    print(messages)
     socketio.emit('message', [msg])
+    open('data/messageinfo.json','w').write(jsonpickle.encode(messages))
 
 @socketio.on('connect')
 def handle_connect():
@@ -286,7 +303,8 @@ def handle_update_position(data):
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
-
+    open('data/playerinfo.json','w').write(jsonpickle.encode(players))
+    open('data/itemsinfo.json','w').write(jsonpickle.encode(items))
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port='5000',host='0.0.0.0')
