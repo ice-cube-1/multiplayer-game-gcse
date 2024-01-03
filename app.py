@@ -12,7 +12,7 @@ gridly = 80
 
 def checkplayer(x,y):
     for i in players:
-        if i.x == x and i.y == y:
+        if i.x == x and i.y == y and i.visible == True:
             return False
     return True
 
@@ -68,7 +68,7 @@ def findTarget(player):
 
 
 rarities=['common','uncommon','rare','epic','legendary']
-healingStats = [2,3,5,7,10]
+healingStats = [4,6,10,16,24]
 armourStats = [12,14,16,19,22]
 weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
 weaponMultiplier = [1,1.25,1.5,2,3]
@@ -282,12 +282,14 @@ def main():
 
 @socketio.on('message')
 def handle_message(msg):
+    zombify()
     messages.append(msg)
     socketio.emit('message',[messages[-1]])
     open('data/messageinfo.json','w').write(jsonpickle.encode(messages))
 
 @socketio.on('connect')
 def handle_connect():
+    zombify()
     socketio.emit('item_positions', items)
     client_id = session.get('ClientID','Guest')
     if players[client_id].hp > 0:
