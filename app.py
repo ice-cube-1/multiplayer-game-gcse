@@ -46,9 +46,16 @@ def attack(toAttack,attacker):
                 items.append(i)
             socketio.emit('item_positions', items)    
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
-            storeColor = players[toAttack].color                                                      
+            storeColor = players[toAttack].color
+            storemaxHP = players[toAttack].maxhp
+            storeKills = players[toAttack].killCount
+            storeProficiency=players[toAttack].proficiency
             players[toAttack] = Player(players[toAttack].name,players[toAttack].password)
             players[toAttack].color = storeColor
+            players[toAttack].maxhp=storemaxHP
+            players[toAttack].killCount=storeKills
+            players[toAttack].proficiency=storeProficiency
+            players[toAttack].hp=storemaxHP
             messages.append([f'{players[toAttack].name} was killed by {attacker.name}',"black"])
             socketio.emit('message',[messages[-1]])
             return 1
@@ -180,8 +187,9 @@ class Player:
         elif charin == "Space":
             self.killCount += findTarget(self)
             playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
-            socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
             self.proficiency = math.floor(math.log(self.killCount+1,2))
+            self.maxhp=40+self.killCount
+            socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
         elif charin == "E":
             self = interact(self)
     def to_dict(self):
@@ -325,6 +333,10 @@ def index():
 @app.route('/main')
 def main():
     return render_template('main.html')
+
+@app.route('/help')
+def help():
+    return render_template('help.html')
 
 @socketio.on('message')
 def handle_message(msg):

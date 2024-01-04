@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<head>
+    <title>Help - Multiplayer-game-gcse</title>
+</head>
+<body>
+    <a href="/main">Back to game</a>
+    <h3>Basic Controls</h3>
+    WASD to move, E to interact, Space to attack<br/>
+    Click on the box under the chat to type, you'll need to click back off this to stop typing<br/>
+    You will go offline after 2 minutes of not moving/not dying, while you won't immediately disappear you can check if you're offline by sending a message 
+    (if you're offline your character will disappear) - sending a message does not reset your offline timer<br/>
+    Occasionally not all assets / up-to-date stats will be loaded, if so moving will fix this<br/>
+    <h3>Interaction</h3>
+    To interact, stand on top of an item and press E. Items have different rarities, with grey being most common, then green, blue, purple and yellow being the rarest.<br/>
+    If it is a potion, it will be used up and you will gain HP (random from 1 up to a number based on potion rarity) up till your maximum. 
+    A potion of the same type will immediately spawn somewhere else on the map.<br/>
+    If it is armour, your AC (armour class) will increase depending on the armour's rarity <br/>
+    If it a weapon, your base damage, range and attack speed set depending on the weapon type, and your damage multiplier will be based on item rarity <br/>
+    <table>
+        <tr><td>Type</td><td>Base damage</td><td>Range</td><td>Attack speed</td></tr>
+        <tr><td>Sword</td><td>1-8</td><td>1</td><td>0.3s</td></tr>
+        <tr><td>Spear</td><td>1-4</td><td>2</td><td>0.25s</td></tr>
+        <tr><td>Axe</td><td>1-14</td><td>1</td><td>0.5s</td></tr>
+        <tr><td>Bow</td><td>1-6</td><td>5</td><td>0.5s</td></tr>
+    </table>
+    <table>
+        <tr><td>Affected stat</td><td>Common (grey)</td><td>Uncommon (green)</td><td>Rare (blue)</td><td>Epic (purple)</td><td>Legendary (yellow)</td></tr>
+        <tr><td>Healing gained</td><td>1-4</td><td>1-6</td><td>1-10</td><td>1-16</td><td>1-24</td></tr>
+        <tr><td>Armour class</td><td>12</td><td>14</td><td>16</td><td>19</td><td>22</td></tr>
+        <tr><td>Damage multiplier</td><td>1</td><td>1.25</td><td>1.5</td><td>2</td><td>3</td></tr>
+    </table>
+    <h3>Attack</h3>
+    Attacks do not always hit, it hits if random(1, 40) + attacker's level > defender's AC<br/>
+    Damage is calculated as (damage multiplier * random(1, base damage)) + level<br/>
+    Pressing Space is considered an attack on anyone in the semicircle of radius range (not including edges) around you<br/>
+    Your level is based on kill count, calculated with floor(log2(kill count+1))
+    <h3>Health + death</h3>
+    Your maximum HP is defined as 40 + your kill count.<br/>
+    When you die, you lose all gear, but you revert to you maximum HP, and keep your level + kills.<br/>
+    You will respawn in a random place and your gear will be dropped as close as possible to where you died<br/>
+    <h3>Resets</h3>
+    Every day at 2am, a new map is generated and the items on the map are moved (same proportion of each rarity but weapon types may change)
+    If you have a tab open from the previous day you may need to refresh to continue playing<br/>
+    Every week everything is fully reset, with the only persisted information being your account (username, password, colour) and the chat history<br/>
+    <h3>Project info + bug reporting</h3>
+    Source code can be found here <a href="https://github.com/ice-cube-1/multiplayer-game-gcse">here</a>, will document better soon.<br/>
+    This project is very much still in development, and sometimes deployments require a reset of all data, although I'm trying to limit these.<br/>
+    If you have any feature suggestions or suggestions to improve game mechanics they would be greatly appreciated :)<br/>
+    Current known bugs - again if you find any more please let me know and I'll try to fix:
+    <ul>
+        <li>Occasionally if person A refreshes person B also gains control of person A - no idea why this happens, so just refresh and it fixes temporarily</li>
+        <li>You only go offline once another event happens - need to make a proper timer for this, will fix ASAP</li>
+        <li>Some items don't appear on startup - reasonably complicated fix so won't do anytime soon</li>
+    </ul>
+    The next major feature I plan to add is the ability to send commands to the chat to request allying with other people, but I'm not going to do that until the 20th January earliest<br/>
+</body>
