@@ -3,12 +3,14 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
 import math
-from datetime import datetime
+from datetime import datetime,timedelta
 import jsonpickle
 import os
+import threading
 
 gridlx = 80
 gridly = 80
+
 
 def checkplayer(x,y):
     for i in players:
@@ -158,8 +160,7 @@ class Player:
         self.lastMove=datetime.now()
     def move(self, charin):
         self.lastMove=datetime.now()
-        if self.hp > 0:
-            self.visible = True
+        self.visible = True
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
                 self.y-=1
@@ -203,9 +204,8 @@ class Player:
         return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}',
                 f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s',
                 self.items]
-
-if not os.path.exists('data'):
-    os.makedirs('data')
+    
+def createGrid():
     grid = [[0 for i in range(gridlx)] for j in range(gridly)]
     for i in range(gridly):
         if i == 0 or i == gridly-1:
@@ -216,7 +216,72 @@ if not os.path.exists('data'):
         for j in range(gridlx):
             if randint(0,9) < 1:
                 grid[i][j] = 1
+    return grid
+
+def weeklyReset():
+    for i in range(len(players)):
+        for j in players[i].items:
+            items.append(j)
+        storeColor = players[i].color                                                      
+        players[i] = Player(players[i].name,players[i].password)
+        players[i].color = storeColor
+
+def dailyReset():
+    global items
+    grid = createGrid()
+    newitems=[]
+    for i in items:
+        newitems.append(createItem(i['rarity'],i['type']))
+    items = newitems
+    socketio.emit('base_grid', grid)
+    playersInfo = [i.getInfoInString() for i in players if i.hp>0]
+    socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
+    socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
+    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+    messages.append([f'The game has reset overnight',"black"])
+    socketio.emit('message',[messages[-1]])
+
+def TimeTillRun():
+    now = datetime.now()
+    scheduled = datetime.combine(now.date(),datetime.strptime("02:00","%H:%M").time())
+    if now > scheduled:
+        scheduled+=timedelta(days=1)
+    print(scheduled,(scheduled-now))
+    return (scheduled-now).total_seconds()
+
+def resetCheck():
+    days=0
+    while True:
+        threading.Event().wait(TimeTillRun())
+        if days%7==0:
+            weeklyReset()
+        dailyReset()
+        days+=1
+
+if not os.path.exists('data'):
+    os.makedirs('data')
     players,items,messages=[],[],[]
+    grid = createGrid()
+    for i in range(16):
+        items.append(createItem("common",'healing'))
+        items.append(createItem("common",'armour'))
+        items.append(createItem("common",'weapon'))    
+        if i%2==0:
+            items.append(createItem("uncommon",'healing'))
+            items.append(createItem("uncommon",'armour'))            
+            items.append(createItem("uncommon",'weapon'))            
+        if i%4==0:
+            items.append(createItem("rare",'healing'))
+            items.append(createItem("rare",'armour'))
+            items.append(createItem("rare",'weapon'))
+        if i%8==0:
+            items.append(createItem("epic",'healing'))
+            items.append(createItem("epic",'armour'))
+            items.append(createItem("epic",'weapon'))
+        if i%16==0:
+            items.append(createItem("legendary",'healing'))
+            items.append(createItem("legendary",'armour'))
+            items.append(createItem("legendary",'weapon'))
     open('data/grid.json','w').write(jsonpickle.encode(grid))
     open('data/playerinfo.json','w').write(jsonpickle.encode(players))
     open('data/itemsinfo.json','w').write(jsonpickle.encode(items))
@@ -231,31 +296,12 @@ else:
     with open('data/messageinfo.json', 'r') as file:
         messages = jsonpickle.decode(file.read())
 
-for i in range(16):
-    items.append(createItem("common",'healing'))
-    items.append(createItem("common",'armour'))
-    items.append(createItem("common",'weapon'))    
-    if i%2==0:
-        items.append(createItem("uncommon",'healing'))
-        items.append(createItem("uncommon",'armour'))            
-        items.append(createItem("uncommon",'weapon'))            
-    if i%4==0:
-        items.append(createItem("rare",'healing'))
-        items.append(createItem("rare",'armour'))
-        items.append(createItem("rare",'weapon'))
-    if i%8==0:
-        items.append(createItem("epic",'healing'))
-        items.append(createItem("epic",'armour'))
-        items.append(createItem("epic",'weapon'))
-    if i%16==0:
-        items.append(createItem("legendary",'healing'))
-        items.append(createItem("legendary",'armour'))
-        items.append(createItem("legendary",'weapon'))
-
 app = Flask(__name__, static_url_path='/static')
 app.secret_key='notVerySecret'
 socketio = SocketIO(app)
 CORS(app)
+thread = threading.Thread(target=resetCheck)
+thread.start()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
