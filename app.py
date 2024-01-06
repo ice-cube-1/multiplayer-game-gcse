@@ -102,7 +102,6 @@ def interact(player):
                     player.items.append(items[i])
                     items.pop(i)
                 for pickedup in player.items:
-                    print(pickedup)
                     if pickedup['type'] == 'armour':
                         player.ac = armourStats[rarities.index(pickedup['rarity'])]
                     else:
@@ -110,7 +109,6 @@ def interact(player):
                         player.range = weaponTypes[pickedup['weapontype']][1]
                         player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
                         player.damageMultiplier = weaponMultiplier[rarities.index(pickedup['rarity'])]
-                        print(player.damage,player.damageMultiplier)
             open('data/playerinfo.json','w').write(jsonpickle.encode(players))
             open('data/itemsinfo.json','w').write(jsonpickle.encode(items))
             socketio.emit('item_positions', items)
@@ -122,13 +120,13 @@ def zombify():
     with zombifyLock:
         for i in range(len(players)):
             delta = currentTime - players[i].lastMove
-            print(delta.total_seconds())
             if delta.total_seconds() > 120 and players[i].visible:
-                print('help')
                 players[i].visible = False
                 messages.append([f'{players[i].name} has gone offline', "black"])
                 socketio.emit('message', [messages[-1]])
         socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+        playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
+        socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
 
 
 def createItem(rarity,type):
@@ -169,10 +167,12 @@ class Player:
         self.killCount = 0
         self.visible = True
         self.lastMove=datetime.now()
+        self.displayedAnywhere = True
     def move(self, charin):
         self.lastMove=datetime.now()
         if self.visible == False:
             self.visible = True
+            self.displayedAnywhere = True
             messages.append([f'{self.name} has joined',"black"])
             socketio.emit('message',[messages[-1]])
         if charin == "W":
@@ -193,7 +193,7 @@ class Player:
             self.direction = 'D'
         elif charin == "Space":
             self.killCount += findTarget(self)
-            playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
+            playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
             self.proficiency = math.floor(math.log(self.killCount+1,2))
             self.maxhp=40+self.killCount
             socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
@@ -250,8 +250,10 @@ def dailyReset():
     for i in items:
         newitems.append(createItem(i['rarity'],i['type']))
     items = newitems
+    if (datetime.now()-players[i].lastMove).total_seconds() > 60*60*24:
+        players[i].displayedAnywhere = False
     socketio.emit('base_grid', grid)
-    playersInfo = [i.getInfoInString() for i in players if i.hp>0]
+    playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
@@ -263,17 +265,14 @@ def TimeTillRun():
     scheduled = datetime.combine(now.date(),datetime.strptime("02:00","%H:%M").time())
     if now > scheduled:
         scheduled+=timedelta(days=1)
-    print(scheduled,(scheduled-now))
     return (scheduled-now).total_seconds()
 
 def resetCheck():
-    days=0
     while True:
         threading.Event().wait(TimeTillRun())
-        if days%7==0:
+        if datetime.today().weekday() == 0:
             weeklyReset()
         dailyReset()
-        days+=1
 
 def waitZombify():
     while True:
@@ -367,10 +366,11 @@ def handle_connect():
     client_id = session.get('ClientID','Guest')
     if players[client_id].hp > 0:
         players[client_id].visible = True
+        players[client_id].displayedAnywhere = True
     join_room(client_id)
     socketio.emit('client_id', client_id, room=client_id)
     socketio.emit('base_grid', grid)
-    playersInfo = [i.getInfoInString() for i in players if i.hp>0]
+    playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
@@ -382,7 +382,7 @@ def handle_connect():
 @socketio.on('update_position')
 def handle_update_position(data):
     players[data['id']].move(data['direction'])
-    playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
+    playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
