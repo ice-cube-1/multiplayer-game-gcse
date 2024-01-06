@@ -56,7 +56,7 @@ def attack(toAttack,attacker):
             players[toAttack].killCount=storeKills
             players[toAttack].proficiency=storeProficiency
             players[toAttack].hp=storemaxHP
-            messages.append([f'{players[toAttack].name} was killed by {attacker.name}',"black"])
+            messages.append([f'{datetime.now().strftime("[%H:%M] ")}{players[toAttack].name} was killed by {attacker.name}',"black"])
             socketio.emit('message',[messages[-1]])
             return 1
     return 0
@@ -122,7 +122,7 @@ def zombify():
             delta = currentTime - players[i].lastMove
             if delta.total_seconds() > 120 and players[i].visible:
                 players[i].visible = False
-                messages.append([f'{players[i].name} has gone offline', "black"])
+                messages.append([f'{datetime.now().strftime("[%H:%M] ")}{players[i].name} has gone offline', "black"])
                 socketio.emit('message', [messages[-1]])
         socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
         playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
@@ -173,7 +173,7 @@ class Player:
         if self.visible == False:
             self.visible = True
             self.displayedAnywhere = True
-            messages.append([f'{self.name} has joined',"black"])
+            messages.append([f'{datetime.now().strftime("[%H:%M] ")}{self.name} has joined',"black"])
             socketio.emit('message',[messages[-1]])
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
@@ -257,7 +257,7 @@ def dailyReset():
     socketio.emit('specificPlayerInfo',[i.getInfoForSpecificPlayer() for i in players])
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-    messages.append([f'The game has reset overnight',"black"])
+    messages.append([f'{datetime.now().strftime("[%H:%M] ")}The game has reset overnight',"black"])
     socketio.emit('message',[messages[-1]])
 
 def TimeTillRun():
@@ -356,6 +356,7 @@ def help():
 
 @socketio.on('message')
 def handle_message(msg):
+    msg[0]=datetime.now().strftime("[%H:%M] ")+msg[0]
     messages.append(msg)
     socketio.emit('message',[messages[-1]])
     open('data/messageinfo.json','w').write(jsonpickle.encode(messages))
@@ -375,7 +376,7 @@ def handle_connect():
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
     socketio.emit('message',messages[len(messages)-40:], room=client_id)
-    messages.append([f'{players[client_id].name} has joined',"black"])
+    messages.append([f'{datetime.now().strftime("[%H:%M] ")}{players[client_id].name} has joined',"black"])
     socketio.emit('message',[messages[-1]])
 
 
