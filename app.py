@@ -47,7 +47,7 @@ def attack(toAttack,attacker):
             socketio.emit('item_positions', items)    
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
             storeColor = players[toAttack].color
-            storemaxHP = players[toAttack].maxhp
+            storemaxHP = players[toAttack].maxhp-1
             storeKills = players[toAttack].killCount
             storeProficiency=players[toAttack].proficiency
             players[toAttack] = Player(players[toAttack].name,players[toAttack].password)
@@ -118,13 +118,17 @@ def interact(player):
     return player
 
 def zombify():
-    currentTime=datetime.now()
-    for i in range(len(players)):
-        delta = currentTime-players[i].lastMove
-        if delta.total_seconds() > 120 and players[i].visible == True:
-            players[i].visible = False
-            messages.append([f'{players[i].name} has gone offline',"black"])
-            socketio.emit('message',[messages[-1]])
+    currentTime = datetime.now()
+    with zombifyLock:
+        for i in range(len(players)):
+            delta = currentTime - players[i].lastMove
+            print(delta.total_seconds())
+            if delta.total_seconds() > 120 and players[i].visible:
+                print('help')
+                players[i].visible = False
+                messages.append([f'{players[i].name} has gone offline', "black"])
+                socketio.emit('message', [messages[-1]])
+        socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
 
 
 def createItem(rarity,type):
@@ -167,7 +171,10 @@ class Player:
         self.lastMove=datetime.now()
     def move(self, charin):
         self.lastMove=datetime.now()
-        self.visible = True
+        if self.visible == False:
+            self.visible = True
+            messages.append([f'{self.name} has joined',"black"])
+            socketio.emit('message',[messages[-1]])
         if charin == "W":
             if grid[self.y-1][self.x] == 0 and checkplayer(self.x,self.y-1):
                 self.y-=1
@@ -230,9 +237,11 @@ def weeklyReset():
     for i in range(len(players)):
         for j in players[i].items:
             items.append(j)
-        storeColor = players[i].color                                                      
+        storeColor = players[i].color    
+        storelastmove=players[i].lastMove                                               
         players[i] = Player(players[i].name,players[i].password)
         players[i].color = storeColor
+        players[i].lastMove = storelastmove
 
 def dailyReset():
     global items
@@ -265,6 +274,11 @@ def resetCheck():
             weeklyReset()
         dailyReset()
         days+=1
+
+def waitZombify():
+    while True:
+        threading.Event().wait(5)
+        zombify()
 
 if not os.path.exists('data'):
     os.makedirs('data')
@@ -306,10 +320,13 @@ else:
 
 app = Flask(__name__, static_url_path='/static')
 app.secret_key='notVerySecret'
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode='threading')
 CORS(app)
 thread = threading.Thread(target=resetCheck)
 thread.start()
+zombifyThread = threading.Thread(target=waitZombify)
+zombifyThread.start()
+zombifyLock = threading.Lock()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -340,14 +357,12 @@ def help():
 
 @socketio.on('message')
 def handle_message(msg):
-    zombify()
     messages.append(msg)
     socketio.emit('message',[messages[-1]])
     open('data/messageinfo.json','w').write(jsonpickle.encode(messages))
 
 @socketio.on('connect')
 def handle_connect():
-    zombify()
     socketio.emit('item_positions', items)
     client_id = session.get('ClientID','Guest')
     if players[client_id].hp > 0:
@@ -367,7 +382,6 @@ def handle_connect():
 @socketio.on('update_position')
 def handle_update_position(data):
     players[data['id']].move(data['direction'])
-    zombify()
     playersInfo = [i.getInfoInString() for i in players if i.hp > 0]
     socketio.emit('PlayersInfo',sorted(playersInfo, key = lambda x: int(x[2]),reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
