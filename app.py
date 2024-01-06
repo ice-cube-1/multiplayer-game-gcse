@@ -8,17 +8,15 @@ import jsonpickle
 import os
 import threading
 
-gridlx = 80
-gridly = 80
-
-
 def checkplayer(x,y):
+    '''Checks if a player is in space'''
     for i in players:
         if i.x == x and i.y == y and i.visible == True:
             return False
     return True
 
 def checkitem(x,y):
+    '''Checks if either an item or wall is in space'''
     if grid[y][x] == 1:
         return False
     for i in items:
@@ -27,14 +25,16 @@ def checkitem(x,y):
     return True
 
 def rollDice(sides,number):
+    '''Returns sum of NdX dice (can be .25)'''
     return sum([randint(1,sides) for i in range(int(number*4))])//4
 
 def attack(toAttack,attacker):
-    if rollDice(40,1)+attacker.proficiency > players[toAttack].ac:
+    '''deals damage / kill logic from attack'''
+    if rollDice(40,1)+attacker.proficiency > players[toAttack].ac: # did it actually hit, if so do damage
         players[toAttack].hp-=rollDice(attacker.damage,attacker.damageMultiplier)+attacker.proficiency
-        if players[toAttack].hp <= 0:
+        if players[toAttack].hp <= 0: # if is dead
             players[toAttack].hp = 0
-            for i in players[toAttack].items:
+            for i in players[toAttack].items: # drops loot (SIMPLIFY)
                 tryx,tryy=players[toAttack].x,players[toAttack].y
                 if i['type'] == 'armour':
                     while not checkitem(tryx,tryy):
@@ -46,6 +46,7 @@ def attack(toAttack,attacker):
                 items.append(i)
             socketio.emit('item_positions', items)    
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
+            # stores everything that needs to be kept during respawn (SIMPLIFY)
             storeColor = players[toAttack].color
             storemaxHP = players[toAttack].maxhp-1
             storeKills = players[toAttack].killCount
@@ -58,8 +59,8 @@ def attack(toAttack,attacker):
             players[toAttack].hp=storemaxHP
             messages.append([f'{datetime.now().strftime("[%H:%M] ")}{players[toAttack].name} was killed by {attacker.name}',"black"])
             socketio.emit('message',[messages[-1]])
-            return 1
-    return 0
+            return 1 # add to kill count
+    return 0 # did not kill
 
 
 def findTarget(player):
@@ -76,11 +77,6 @@ def findTarget(player):
     return 0
 
 
-rarities=['common','uncommon','rare','epic','legendary']
-healingStats = [4,6,10,16,24]
-armourStats = [12,14,16,19,22]
-weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
-weaponMultiplier = [1,1.25,1.5,2,3]
 def interact(player):
     for i in range(len(items)):
         if items[i]['x'] == player.x and items[i]['y'] == player.y:
@@ -326,6 +322,12 @@ thread.start()
 zombifyThread = threading.Thread(target=waitZombify)
 zombifyThread.start()
 zombifyLock = threading.Lock()
+gridlx,gridly=80,80
+rarities=['common','uncommon','rare','epic','legendary']
+healingStats = [4,6,10,16,24]
+armourStats = [12,14,16,19,22]
+weaponTypes = {"/sword": [8,1,0.3],"/spear":[4,2,0.25],"/axe":[14,1,0.5],"/bow":[6,5,0.5]}
+weaponMultiplier = [1,1.25,1.5,2,3]
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
