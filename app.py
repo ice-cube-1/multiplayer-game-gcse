@@ -35,8 +35,7 @@ def rollDice(sides, number):
 def attack(toAttack, attacker):
     '''deals damage / kill logic from attack'''
     if rollDice(40, 1)+attacker.proficiency > players[toAttack].ac:  # did it actually hit, if so do damage
-        players[toAttack].hp -= rollDice(attacker.damage,
-                                         attacker.damageMultiplier)+attacker.proficiency
+        players[toAttack].hp -= rollDice(attacker.damage, attacker.damageMultiplier)+attacker.proficiency
         if players[toAttack].hp <= 0:  # if is dead
             players[toAttack].hp = 0
             for i in players[toAttack].items:  # drops loot (SIMPLIFY)
@@ -50,23 +49,20 @@ def attack(toAttack, attacker):
                 i['x'], i['y'] = tryx, tryy
                 items.append(i)
             socketio.emit('item_positions', items)
-            socketio.emit('new_positions',  {"objects": [
-                          i.to_dict() for i in players]})
+            socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
             # stores everything that needs to be kept during respawn (SIMPLIFY)
             storeColor = players[toAttack].color
             storemaxHP = players[toAttack].maxhp-1
             storeKills = players[toAttack].killCount
             storeProficiency = players[toAttack].proficiency
-            players[toAttack] = Player(
-                players[toAttack].name, players[toAttack].password)
+            players[toAttack] = Player(players[toAttack].name, players[toAttack].password)
             players[toAttack].color = storeColor
             players[toAttack].maxhp = storemaxHP
             players[toAttack].killCount = storeKills
             players[toAttack].proficiency = storeProficiency
             players[toAttack].hp = storemaxHP
             # AT LEAST SOME SHOULD BE MODULARIZED
-            messages.append(
-                [f'{datetime.now().strftime("[%H:%M] ")}{players[toAttack].name} was killed by {attacker.name}', "black"])
+            messages.append([f'{datetime.now().strftime("[%H:%M] ")}{players[toAttack].name} was killed by {attacker.name}', "black"])
             socketio.emit('message', [messages[-1]])
             return 1  # add to kill count
     return 0  # did not kill
@@ -285,10 +281,10 @@ def dailyReset():
     '''grid regeneates, items on board lose'''
     global items
     grid = createGrid()
-    newitems = []
-    for i in items:
-        newitems.append(createItem(i['rarity'], i['type']))
-    items = newitems
+    olditems = [i for i in items]
+    items = []
+    for i in olditems:
+        items.append(createItem(i['rarity'], i['type']))
     # should they be shown on the leaderboard
     if (datetime.now()-players[i].lastMove).total_seconds() > 60*60*24:
         players[i].displayedAnywhere = False
@@ -383,8 +379,7 @@ gridlx, gridly = 80, 80
 rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
 healingStats = [4, 6, 10, 16, 24]
 armourStats = [12, 14, 16, 19, 22]
-weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4,
-                                                 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
+weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
 weaponMultiplier = [1, 1.25, 1.5, 2, 3]
 
 
