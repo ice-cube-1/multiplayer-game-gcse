@@ -327,6 +327,23 @@ def waitZombify():
         zombify()
 
 
+# initialises constants + web / thread stuff
+app = Flask(__name__, static_url_path='/static')
+app.secret_key = 'notVerySecret'
+socketio = SocketIO(app, async_mode='threading')
+CORS(app)
+thread = threading.Thread(target=resetCheck)
+thread.start()
+zombifyThread = threading.Thread(target=waitZombify)
+zombifyThread.start()
+zombifyLock = threading.Lock()
+gridlx, gridly = 80, 80
+rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
+healingStats = [4, 6, 10, 16, 24]
+armourStats = [12, 14, 16, 19, 22]
+weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
+weaponMultiplier = [1, 1.25, 1.5, 2, 3]
+
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     players, items, messages = [], [], []
@@ -364,23 +381,6 @@ else: # just opens the files
         items = jsonpickle.decode(file.read())
     with open('data/messageinfo.json', 'r') as file:
         messages = jsonpickle.decode(file.read())
-
-# initialises constants + web / thread stuff
-app = Flask(__name__, static_url_path='/static')
-app.secret_key = 'notVerySecret'
-socketio = SocketIO(app, async_mode='threading')
-CORS(app)
-thread = threading.Thread(target=resetCheck)
-thread.start()
-zombifyThread = threading.Thread(target=waitZombify)
-zombifyThread.start()
-zombifyLock = threading.Lock()
-gridlx, gridly = 80, 80
-rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
-healingStats = [4, 6, 10, 16, 24]
-armourStats = [12, 14, 16, 19, 22]
-weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
-weaponMultiplier = [1, 1.25, 1.5, 2, 3]
 
 
 @app.route('/', methods=['GET', 'POST'])
