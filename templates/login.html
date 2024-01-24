@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+</head>
+<body>
+    {% if user_code %}
+    <ol>
+      <li>To sign in, type <b>{{ user_code }}</b> into
+        <a href='{{ auth_uri }}' target=_blank>{{ auth_uri }}</a>
+        to authenticate.
+      </li>
+      <li>And then <a href="{{ url_for('auth_response') }}">proceed</a>.</li>
+    </ol>
+    {% else %}
+    <a href='{{ auth_uri }}'>Sign In</a>
+    {% endif %}
+</body>
+</html>

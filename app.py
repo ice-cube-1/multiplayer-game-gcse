@@ -7,6 +7,11 @@ from datetime import datetime, timedelta
 import jsonpickle
 import os
 import threading
+from werkzeug.middleware.proxy_fix import ProxyFix
+import identity
+import identity.web
+from flask_session import Session
+import app_config
 
 
 def checkplayer(x, y):
@@ -55,7 +60,7 @@ def attack(toAttack, attacker):
             storemaxHP = players[toAttack].maxhp-1
             storeKills = players[toAttack].killCount
             storeProficiency = players[toAttack].proficiency
-            players[toAttack] = Player(players[toAttack].name, players[toAttack].password)
+            players[toAttack] = Player(players[toAttack].name)
             players[toAttack].color = storeColor
             players[toAttack].maxhp = storemaxHP
             players[toAttack].killCount = storeKills
@@ -160,7 +165,7 @@ def createItem(rarity, type):
 
 
 class Player:
-    def __init__(self, name, password):
+    def __init__(self, name):
         # all the variables for it - SIMPLIFY
         self.x = 0
         self.y = 0
@@ -168,7 +173,6 @@ class Player:
             self.x = randint(0, gridlx-1)
             self.y = randint(0, gridlx-1)
         self.name = name
-        self.password = password
         self.color = f'rgb({randint(0,255)},{randint(0,255)},{randint(0,255)})'
         self.hp = 40
         self.maxhp = 40
@@ -266,13 +270,13 @@ def createGrid():
 
 
 def weeklyReset():
-    '''all characters lose all stats etc, only thing that stays is color, username, password'''
+    '''all characters lose all stats etc, only thing that stays is color, username'''
     for i in range(len(players)):
         for j in players[i].items:
             items.append(j)
         storeColor = players[i].color
         storelastmove = players[i].lastMove  # SIMPLIFY STORES
-        players[i] = Player(players[i].name, players[i].password)
+        players[i] = Player(players[i].name)
         players[i].color = storeColor
         players[i].lastMove = storelastmove
 
@@ -332,6 +336,10 @@ app = Flask(__name__, static_url_path='/static')
 app.secret_key = 'notVerySecret'
 socketio = SocketIO(app, async_mode='threading')
 CORS(app)
+app.config.from_object(app_config)
+Session(app)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+auth = identity.web.Auth(session=session, authority=app.config.get("AUTHORITY"), client_id=app.config["CLIENT_ID"], client_credential=app.config["CLIENT_SECRET"],)
 thread = threading.Thread(target=resetCheck)
 thread.start()
 zombifyThread = threading.Thread(target=waitZombify)
@@ -383,31 +391,43 @@ else: # just opens the files
         messages = jsonpickle.decode(file.read())
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/login")
+def login():
+    return render_template("login.html", version=identity.__version__, **auth.log_in(
+        scopes=app_config.SCOPE, # Have user consent to scopes during log-in
+        redirect_uri=url_for("auth_response", _external=True), # Optional. If present, this absolute URL must match your app's redirect_uri registered in Azure Portal
+        ))
+
+@app.route(app_config.REDIRECT_PATH)
+def auth_response():
+    result = auth.complete_log_in(request.args)
+    session['username'] = auth.get_user().get('name')
+    print(auth.get_user().get('name'))
+    return redirect(url_for("index"))
+
+@app.route("/logout")
+def logout():
+    return redirect(auth.log_out(url_for("index", _external=True)))
+
+@app.route("/")
 def index():
-    '''login screen, gets client id from name / password'''
-    if request.method == 'POST':
-        playerName = request.form.get('player_name')
-        playerPassword = request.form.get('password')
-        client_id = -1
-        for i in range(len(players)):
-            if players[i].name == playerName:
-                if players[i].password == playerPassword:
-                    client_id = i
-                else:
-                    return render_template('index.html', incorrectPassword=True)
-        if client_id == -1:
-            players.append(Player(playerName, playerPassword))
-            client_id = len(players)-1
-        session['ClientID'] = client_id
-        return redirect(url_for('main'))
-    return render_template('index.html', incorrectPassword=False)
-
-
-@app.route('/main')
-def main():
-    '''this is all websockets'''
-    return render_template('main.html')
+    print(app.config['CLIENT_ID'])
+    username = session.get('username', 'Guest')
+    if not username:
+        return redirect(url_for("login"))
+    client_id = -1
+    for i in range(len(players)):
+        if username == players[i].name:
+            client_id = i
+    if client_id == -1:
+        players.append(Player(username))
+        print(players)
+        open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
+        client_id = len(players)-1
+    session['ClientID'] = client_id
+    print(client_id)
+    print(username)
+    return render_template('index.html')
 
 
 @app.route('/help')

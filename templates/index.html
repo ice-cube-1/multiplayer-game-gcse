@@ -3,25 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join Game</title>
+    <title>Multiplayer-game-gcse</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='why.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.3/socket.io.js"></script>
 </head>
 <body>
-    <h1>Sign up / log in:</h1>
-    <form action="/" method="post">
-        <label for="player_name">Username:</label>
-        <input type="text" id="player_name" name="player_name" required>
-    <br/>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-        <button type="submit">Join</button>
-    </form>
-    {% if incorrectPassword == True%}
-    <strong>That username is in use with a different password</strong><br/>
-    {% endif %}
-    Please use the desktop site and a low-security password<br/>
-    Your account will be auto-generated if your username doesn't have one linked yet<br/>
-    In case it's of interest, source code can be found <a href="https://github.com/ice-cube-1/multiplayer-game-gcse">here</a>
-
-
+    <table>
+        <tr>
+            <td>
+                <canvas id="gameCanvas" width="800" height="800" style="border:1px solid #000;"></canvas>
+            </td>
+            <td>
+                <canvas id="infoCanvas" width="400" height="800" style="border:1px solid #000;"></canvas>
+            </td>
+            <td class="form-td">
+                <ul id="messages"></ul>
+                    <form id="form" action="">
+                        <input id="input" autocomplete="off" onfocus="setInputFocus(true)" onblur="setInputFocus(false)" />
+                    </form>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <a href="/help">How to play / general info</a>
+            </td>
+            <td>
+                
+            </td>
+            <td>
+                <a href = "/logout">Logout</a>
+            </td>
+        </tr>
+    </table>
+<script src="static/game.js"></script>
 </body>
 </html>

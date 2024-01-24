@@ -18,6 +18,7 @@ var ul = document.getElementById('messages');
 var messageCount = 0;
 
 socket.on('PlayersInfo', function (data) {
+    console.log(id,'hi')
     // gets the info but doesn't do anything with it
     playersinfo = data
 });
