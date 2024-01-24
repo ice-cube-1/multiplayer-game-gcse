@@ -411,9 +411,8 @@ def logout():
 
 @app.route("/")
 def index():
-    print(app.config['CLIENT_ID'])
     username = session.get('username', 'Guest')
-    if not username:
+    if not username or username == 'Guest':
         return redirect(url_for("login"))
     client_id = -1
     for i in range(len(players)):
@@ -483,4 +482,4 @@ def handle_update_position(data):
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port='5000')  # LOCALTEST
-    # socketio.run(app, debug=True,host='0.0.0.0',allow_unsafe_werkzeug=True, port=443, ssl_context=(open(app_config.FULL_CHAIN).readlines(), open(app_config.PRIV_KEY).readlines())) # SERVER
+    # socketio.run(app, debug=True,host='0.0.0.0',allow_unsafe_werkzeug=True, port=443, ssl_context=(app_config.FULL_CHAIN, app_config.PRIV_KEY)) # SERVER
