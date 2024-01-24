@@ -481,7 +481,6 @@ def handle_update_position(data):
     open('data/playerinfo.json', 'w').write(jsonpickle.encode(players)) #again SIMPLIFY
     open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
 
-
 if __name__ == '__main__':
     socketio.run(app, debug=True, port='5000')  # LOCALTEST
-    # socketio.run(app, debug=True, port='80',host='0.0.0.0',allow_unsafe_werkzeug=True) # SERVER
+    # socketio.run(app, debug=True,host='0.0.0.0',allow_unsafe_werkzeug=True, port=443, ssl_context=(open(app_config.FULL_CHAIN).readlines(), open(app_config.PRIV_KEY).readlines())) # SERVER
