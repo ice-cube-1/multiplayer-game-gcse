@@ -71,6 +71,11 @@ document.getElementById('form').onsubmit = function () { // sends the messages
     input.value = '';
     return false;
 };
+
+socket.on('redirect', function (data) {
+    window.location = data.url;
+});
+
 socket.on('base_grid', function (data) { // gets server updates
     grid = data
 });

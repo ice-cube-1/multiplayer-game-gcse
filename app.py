@@ -314,6 +314,28 @@ def TimeTillRun():
         scheduled += timedelta(days=1)
     return (scheduled-now).total_seconds()
 
+def timeUntilMorning():
+    now = datetime.now()
+    scheduled = datetime.combine(
+        now.date(), datetime.strptime("08:30", "%H:%M").time())
+    if now > scheduled:
+        scheduled += timedelta(days=1)
+    return (scheduled-now).total_seconds()
+
+def checkRunnable():
+    global canrun
+    while True:
+        canrun = True
+        threading.Event().wait(timeUntilMorning())
+        if datetime.today().weekday() < 5:
+            canrun = False
+        threading.Event().wait(3.75*60*60)
+        canrun = True
+        threading.Event.wait(45*60)
+        if datetime.today().weekday() < 5:
+            canrun = False
+        threading.Event.wait(3.25*60*60)
+        canrun = True
 
 def resetCheck():
     '''waits in a thread until next reset, then possibly does a weekly one before the daily one'''
@@ -345,13 +367,14 @@ thread.start()
 zombifyThread = threading.Thread(target=waitZombify)
 zombifyThread.start()
 zombifyLock = threading.Lock()
+offlineThread = threading.Thread(target=checkRunnable)
+offlineThread.start()
 gridlx, gridly = 80, 80
 rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
 healingStats = [4, 6, 10, 16, 24]
 armourStats = [12, 14, 16, 19, 22]
 weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
 weaponMultiplier = [1, 1.25, 1.5, 2, 3]
-
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     players, items, messages = [], [], []
@@ -426,7 +449,11 @@ def index():
     session['ClientID'] = client_id
     print(client_id)
     print(username)
-    return render_template('index.html')
+    print(canrun)
+    if canrun:
+        return render_template('index.html')
+    else:
+        return render_template('login.html')
 
 
 @app.route('/help')
@@ -479,6 +506,9 @@ def handle_update_position(data):
                   i.getInfoForSpecificPlayer() for i in players])
     open('data/playerinfo.json', 'w').write(jsonpickle.encode(players)) #again SIMPLIFY
     open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
+    if not canrun:
+        socketio.emit('redirect', {'url': '/login'})
+
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port='5000')  # LOCALTEST
