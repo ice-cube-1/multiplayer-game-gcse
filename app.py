@@ -188,7 +188,7 @@ class Player:
         self.visible = True
         self.lastMove = datetime.now()
         self.displayedAnywhere = True
-
+        self.ally=[self.name]
     def move(self, charin):
         '''deals with client input'''
         self.lastMove = datetime.now()
@@ -465,10 +465,30 @@ def help():
 @socketio.on('message')
 def handle_message(msg):
     '''emits received message to everyone'''
-    msg[0] = datetime.now().strftime("[%H:%M] ")+msg[0]
-    messages.append(msg)
-    socketio.emit('message', [messages[-1]]) #SIMPLIFY?? may have to change what's emitted by the client
-    open('data/messageinfo.json', 'w').write(jsonpickle.encode(messages))
+    name, message = msg[0].split(': ')
+    if message[:6] == '/ally ':
+        allywith = message[6:]
+        allywithidx=None
+        for i in range(len(players)):
+            print(allywith==players[i].name)
+            if players[i].name == name:
+               ally2idx = i
+            elif players[i].name == allywith:
+                allywithidx = i
+        socketio.emit('message',[[datetime.now().strftime('[%H:%M] ')+msg[0],msg[1]]], room = ally2idx)
+        if allywithidx!=None:
+            allylist=list(set(players[allywithidx].ally+players[ally2idx].ally))
+            for i in range(len(players)):
+                if players[i].name in allylist:
+                    players[i].ally = allylist
+                    socketio.emit('message',[[f'You have allied with {allylist}','black']], room=i)
+        else:
+            socketio.emit('message',[['There is no player of that name','black']],room=ally2idx)
+    else:
+        msg[0] = datetime.now().strftime("[%H:%M] ")+msg[0]
+        messages.append(msg)
+        socketio.emit('message', [messages[-1]]) #SIMPLIFY?? may have to change what's emitted by the client
+        open('data/messageinfo.json', 'w').write(jsonpickle.encode(messages))
 
 
 @socketio.on('connect')
