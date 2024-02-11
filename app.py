@@ -375,6 +375,7 @@ healingStats = [4, 6, 10, 16, 24]
 armourStats = [12, 14, 16, 19, 22]
 weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
 weaponMultiplier = [1, 1.25, 1.5, 2, 3]
+allygroups = []
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     players, items, messages = [], [], []
@@ -468,22 +469,33 @@ def handle_message(msg):
     name, message = msg[0].split(': ')
     if message[:6] == '/ally ':
         allywith = message[6:]
-        allywithidx=None
-        for i in range(len(players)):
-            print(allywith==players[i].name)
-            if players[i].name == name:
-               ally2idx = i
-            elif players[i].name == allywith:
-                allywithidx = i
-        socketio.emit('message',[[datetime.now().strftime('[%H:%M] ')+msg[0],msg[1]]], room = ally2idx)
-        if allywithidx!=None:
-            allylist=list(set(players[allywithidx].ally+players[ally2idx].ally))
-            for i in range(len(players)):
-                if players[i].name in allylist:
-                    players[i].ally = allylist
-                    socketio.emit('message',[[f'You have allied with {allylist}','black']], room=i)
+        if allywith == 'confirm':
+            for i in range(len(allygroups)):
+                if allygroups[i][1][0] == name:
+                    players[allygroups[i][1][1]].ally.append(allygroups[i][0][0])
+                    players[allygroups[i][0][1]].ally.append(allygroups[i][1][0])
+                    socketio.emit('message',[[f'{allygroups[i][1][0]} has confirmed your alliance','black']],room=allygroups[i][0][1])
+                    socketio.emit('message',[[f'You have confirmed your alliance with {allygroups[i][0][0]}','black']],room=allygroups[i][1][1])
+                    allygroups[i][1][0] = None
+        elif allywith == 'cancel':
+            for i in range(len(allygroups)):
+                if allygroups[i][1][0] == name:
+                    allygroups[i][1][0] = None
         else:
-            socketio.emit('message',[['There is no player of that name','black']],room=ally2idx)
+            allywithidx=None
+            for i in range(len(players)):
+                print(allywith==players[i].name)
+                if players[i].name == name:
+                    ally2idx = i
+                elif players[i].name == allywith:
+                    allywithidx = i
+            socketio.emit('message',[[datetime.now().strftime('[%H:%M] ')+msg[0],msg[1]]], room = ally2idx)
+            if allywithidx!=None:
+                socketio.emit('message',[[f'{name} wants to ally with you. Type "/ally confirm" to confirm, /ally cancel to cancel','black']],room = allywithidx)
+                socketio.emit('message',[[f'Ally request sent to {allywith}']])
+                allygroups.append([[name,ally2idx],[allywith,allywithidx]])
+            else:
+                socketio.emit('message',[['There is no player of that name','black']],room=ally2idx)
     else:
         msg[0] = datetime.now().strftime("[%H:%M] ")+msg[0]
         messages.append(msg)
