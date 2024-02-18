@@ -77,7 +77,7 @@ def findTarget(player):
     '''Attacks the first (presumes there's only one) player in range'''
     '''Does this based on both range in a semicircle and direction'''
     for i in range(len(players)):
-        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True:
+        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True and players[i].name not in player.ally:
             if player.direction == 'W' and player.y - players[i].y > 0:
                 return attack(i, player)
             elif player.direction == 'S' and players[i].y - player.y > 0:
@@ -235,6 +235,7 @@ class Player:
             'color': self.color,
             'attackSpeed': self.attackSpeed*1000,
             'hp': self.hp,
+            'name': self.name,
             'visible': self.visible,
             'name': str(self.name)
         }
@@ -351,7 +352,6 @@ def waitZombify():
     while True:
         threading.Event().wait(5)
         zombify()
-
 
 # initialises constants + web / thread stuff
 app = Flask(__name__, static_url_path='/static')
@@ -477,6 +477,8 @@ def handle_message(msg):
                     socketio.emit('message',[[f'{allygroups[i][1][0]} has confirmed your alliance','black']],room=allygroups[i][0][1])
                     socketio.emit('message',[[f'You have confirmed your alliance with {allygroups[i][0][0]}','black']],room=allygroups[i][1][1])
                     allygroups[i][1][0] = None
+                    socketio.emit('allies',players[allygroups[i][1][1]].ally, room=players[allygroups[i][1][1]])
+                    socketio.emit('allies',players[allygroups[i][0][1]].ally, room=players[allygroups[i][0][1]])
         elif allywith == 'cancel':
             for i in range(len(allygroups)):
                 if allygroups[i][1][0] == name:
@@ -521,6 +523,7 @@ def handle_connect():
         playersInfo, key=lambda x: int(x[2]), reverse=True))
     socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
     socketio.emit('message', messages[len(messages)-40:], room=client_id)
+    socketio.emit('allies',players[client_id].ally, room=client_id)
     messages.append(
         [f'{datetime.now().strftime("[%H:%M] ")}{players[client_id].name} has joined', "black"])
     socketio.emit('message', [messages[-1]])

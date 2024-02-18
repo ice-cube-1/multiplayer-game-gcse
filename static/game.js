@@ -16,6 +16,7 @@ var lastAttack = Date.now()
 var playersinfo = [];
 var ul = document.getElementById('messages');
 var messageCount = 0;
+var allies = []
 
 socket.on('PlayersInfo', function (data) {
     console.log(id,'hi')
@@ -76,6 +77,10 @@ socket.on('redirect', function (data) {
     window.location = data.url;
 });
 
+socket.on('allies',function (data) {
+    allies=data
+});
+
 socket.on('base_grid', function (data) { // gets server updates
     grid = data
 });
@@ -129,6 +134,13 @@ socket.on('new_positions', function (data) {
     for (let i = 0; i < playerpos.length; i++) { // puts text on characters displaying HP
         if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1]) && playerpos[i]['visible'] == true) {
             ctx.fillText(playerpos[i]['hp'], (playerpos[i]['x'] - screenxoffset + 0.5) * scale, (playerpos[i]['y'] - screenyoffset + 0.5) * scale + 10)
+            console.log(allies,playerpos[i]['name'],playerpos[i]['name'] in allies)
+            if (allies.includes(playerpos[i]['name'])) {
+                console.log('ally detected')
+                var img = new Image();
+                img.src = `static/items-images/other/heart.png`;
+                ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset + 0.5) * scale, (playerpos[i]['y'] - screenyoffset + 0.5) * scale + 10,scale/2,scale/2)
+            }
         }
     }
     for (let i = 0; i < items.length; i++) { // draws items
