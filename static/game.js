@@ -3,7 +3,7 @@ var infoCanvas = document.getElementById("infoCanvas");
 var scale = 40
 var ctx = canvas.getContext("2d");
 var infoctx = infoCanvas.getContext('2d')
-ctx.font = "20px Arial";
+ctx.font = "15px Arial";
 infoctx.font = '15px Arial'
 ctx.textAlign = "center";
 var socket = io.connect(document.location.protocol + '//' + document.domain + ':' + location.port);
@@ -128,7 +128,11 @@ socket.on('new_positions', function (data) {
             var x = j * scale;
             var y = i * scale;
             ctx.fillStyle = gridToRender[i][j];
-            ctx.fillRect(x, y, scale, scale);
+            if (gridToRender[i][j] != 'black' && gridToRender[i][j] != 'white'){
+                ctx.fillRect(x+(0.2*scale), y+(0.2*scale), scale*0.4, scale*0.6);
+            } else {
+                ctx.fillRect(x, y, scale, scale);
+            }
         }
     }
     for (let i = 0; i < playerpos.length; i++) { // puts text on characters displaying HP
@@ -136,8 +140,18 @@ socket.on('new_positions', function (data) {
             var img = new Image();
             img.src = `static/items-images/other/character.png`;
             ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset) * scale, (playerpos[i]['y'] - screenyoffset) * scale, scale*(13/18), scale);  
-            ctx.fillStyle = 'white';
-            ctx.fillText(playerpos[i]['hp'], (playerpos[i]['x'] - screenxoffset + 0.5) * scale, (playerpos[i]['y'] - screenyoffset + 0.5) * scale + 10)
+            if (playerpos[i]['armour'] != false) {
+                var img = new Image();
+                img.src = `static/items-images/armour/${playerpos[i]['armour']}.png`
+                ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset +(1/18)) * scale, (playerpos[i]['y'] - screenyoffset-(3/18)) * scale,scale*(15/18),scale*(15/18))
+            }
+            if (playerpos[i]['weapon'] != false) {
+                var img = new Image();
+                img.src = `static/items-images/weapon${playerpos[i]['weapon']}/${playerpos[i]['weaponrarity']}.png`;
+                ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset +(11/18)) * scale, (playerpos[i]['y'] - screenyoffset+(3/18)) * scale,scale*(10/18),scale*(10/18))
+            }
+            ctx.fillStyle = 'black';
+            ctx.fillText(playerpos[i]['hp'], (playerpos[i]['x'] - screenxoffset + 0.85) * scale, (playerpos[i]['y'] - screenyoffset) * scale)
             console.log(allies,playerpos[i]['name'],playerpos[i]['name'] in allies)
             if (allies.includes(playerpos[i]['name'])) {
                 console.log('ally detected')

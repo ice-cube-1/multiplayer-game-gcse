@@ -229,6 +229,12 @@ class Player:
 
     def to_dict(self):
         '''only what the client needs - simpler to serialize, more secure + less traffic'''
+        weapontype, weaponrarity, armour = False, False, False
+        for i in self.items:
+            if i['type'] == 'weapon':
+                weaponrarity,weapontype = i['rarity'],i['weapontype']
+            else:
+                armour = i['rarity']
         return {
             'x': self.x,
             'y': self.y,
@@ -237,7 +243,10 @@ class Player:
             'hp': self.hp,
             'name': self.name,
             'visible': self.visible,
-            'name': str(self.name)
+            'name': str(self.name),
+            'weapon': weapontype,
+            'weaponrarity' : weaponrarity,
+            'armour': armour
         }
 
     def getInfoInString(self):
