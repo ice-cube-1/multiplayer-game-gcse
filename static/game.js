@@ -133,6 +133,10 @@ socket.on('new_positions', function (data) {
     }
     for (let i = 0; i < playerpos.length; i++) { // puts text on characters displaying HP
         if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1]) && playerpos[i]['visible'] == true) {
+            var img = new Image();
+            img.src = `static/items-images/other/character.png`;
+            ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset) * scale, (playerpos[i]['y'] - screenyoffset) * scale, scale*(13/18), scale);  
+            ctx.fillStyle = 'white';
             ctx.fillText(playerpos[i]['hp'], (playerpos[i]['x'] - screenxoffset + 0.5) * scale, (playerpos[i]['y'] - screenyoffset + 0.5) * scale + 10)
             console.log(allies,playerpos[i]['name'],playerpos[i]['name'] in allies)
             if (allies.includes(playerpos[i]['name'])) {
