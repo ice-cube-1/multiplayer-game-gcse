@@ -128,11 +128,18 @@ socket.on('new_positions', function (data) {
             var x = j * scale;
             var y = i * scale;
             ctx.fillStyle = gridToRender[i][j];
+            if (gridToRender[i][j] != 'black') {
+                var img = new Image();
+                img.src = 'static/items-images/other/floor.png'
+                ctx.drawImage(img, x, y, scale, scale);
+            } else {
+                var img = new Image();
+                img.src = 'static/items-images/other/bricks.png'
+                ctx.drawImage(img, x, y, scale, scale);      
+            }
             if (gridToRender[i][j] != 'black' && gridToRender[i][j] != 'white'){
                 ctx.fillRect(x+(0.2*scale), y+(0.2*scale), scale*0.4, scale*0.6);
-            } else {
-                ctx.fillRect(x, y, scale, scale);
-            }
+            } 
         }
     }
     for (let i = 0; i < playerpos.length; i++) { // puts text on characters displaying HP
