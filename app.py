@@ -478,7 +478,21 @@ def handle_message(msg):
     name, message = msg[0].split(': ')
     if message[:6] == '/ally ':
         allywith = message[6:]
-        if allywith == 'confirm':
+        if allywith[:7] == 'remove ':
+            toremove = allywith[7:]
+            toremoveidx=None
+            for i in range(len(players)):
+                if players[i].name == name:
+                    removeridx = i
+                elif players[i].name == toremove:
+                    toremoveidx = i
+            if toremove in players[removeridx].ally:
+                players[toremoveidx].ally.remove(name)
+                players[removeridx].ally.append(toremove)
+                socketio.emit('message',[[f'{name} has revoked their ally with {toremove}']])
+            else:
+                socketio.emit('message',[[f'You have not allied with {toremove}','black']],room=removeridx)
+        elif allywith == 'confirm':
             for i in range(len(allygroups)):
                 if allygroups[i][1][0] == name:
                     players[allygroups[i][1][1]].ally.append(allygroups[i][0][0])
