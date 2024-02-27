@@ -1,8 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <style>
+    body {text-align: center;}
+    h1 {font-size: 50px;}
+    p {font-size: 20px;}
+  </style>
 </head>
 <body>
+  <h1>Multiplayer-game-gcse</h1>
     {% if user_code %}
     <ol>
       <li>To sign in, type <b>{{ user_code }}</b> into
@@ -12,9 +18,11 @@
       <li>And then <a href="{{ url_for('auth_response') }}">proceed</a>.</li>
     </ol>
     {% else %}
-    <a href='{{ auth_uri }}'>Sign In</a>
+    <br/><a href='{{ auth_uri }}'><img src='static/items-images/other/ms-signin.png' width='350px'/></a><br/></br/>
     {% endif %}
-    Due to (surprisingly) high popularity, this is not available between 8:30 and 12:15 or between 13:00 and  16:15.
-    Also, this is the multiplayer game you expect, the sign-in page just is very simplistic
+    <p>
+    Due to (surprisingly) high popularity, this is not available between 8:30 and 12:15 or between 13:00 and  16:15.<br/>
+    Also, this is the multiplayer game you expect, the sign-in page just is very simplistic</p>
+  </body>
 </body>
 </html>
