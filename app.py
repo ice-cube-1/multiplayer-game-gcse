@@ -77,7 +77,7 @@ def findTarget(player):
     '''Attacks the first (presumes there's only one) player in range'''
     '''Does this based on both range in a semicircle and direction'''
     for i in range(len(players)):
-        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True and players[i].name not in player.ally:
+        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True and players[i].name not in player.ally and player.name not in players[i].ally:
             if player.direction == 'W' and player.y - players[i].y > 0:
                 return attack(i, player)
             elif player.direction == 'S' and players[i].y - player.y > 0:
