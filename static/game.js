@@ -17,6 +17,7 @@ var playersinfo = [];
 var ul = document.getElementById('messages');
 var messageCount = 0;
 var allies = []
+var coins = []
 
 socket.on('PlayersInfo', function (data) {
     console.log(id,'hi')
@@ -87,9 +88,12 @@ socket.on('base_grid', function (data) { // gets server updates
 socket.on('item_positions', function (data) {
     items = data
 });
+socket.on('coin_positions',function (data) {
+    coins=data
+});
+
 socket.on('client_id', function (data) {
     id = data
-    console.log('Your client ID is: ' + data);
 });
 socket.on('new_positions', function (data) {
     playerpos = data.objects;
@@ -159,9 +163,7 @@ socket.on('new_positions', function (data) {
             }
             ctx.fillStyle = 'black';
             ctx.fillText(playerpos[i]['hp'], (playerpos[i]['x'] - screenxoffset + 0.85) * scale, (playerpos[i]['y'] - screenyoffset) * scale)
-            console.log(allies,playerpos[i]['name'],playerpos[i]['name'] in allies)
             if (allies.includes(playerpos[i]['name'])) {
-                console.log('ally detected')
                 var img = new Image();
                 img.src = `static/items-images/other/heart.png`;
                 ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset + 0.5) * scale, (playerpos[i]['y'] - screenyoffset + 0.5) * scale + 10,scale/2,scale/2)
@@ -173,6 +175,13 @@ socket.on('new_positions', function (data) {
             var img = new Image();
             img.src = `static/items-images/${items[i]['type']}${items[i]['weapontype']}/${items[i]['rarity']}.png`;
             ctx.drawImage(img, (items[i]['x'] - screenxoffset) * scale, (items[i]['y'] - screenyoffset) * scale, scale, scale);
+        }
+    }
+    var img = new Image();
+    img.src = `static/items-images/other/coin.png`;
+    for (let i=0; i<coins.length; i++) {
+        if ((0 <= coins[i]['x'] - screenxoffset && coins[i]['x'] - screenxoffset < screensize[0]) && (0 <= coins[i]['y'] - screenyoffset && coins[i]['y'] - screenyoffset < screensize[1])) {
+            ctx.drawImage(img, (coins[i]['x'] - screenxoffset) * scale, (coins[i]['y'] - screenyoffset) * scale, scale/2, scale/2);
         }
     }
 });

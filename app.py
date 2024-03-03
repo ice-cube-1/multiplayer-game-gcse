@@ -125,6 +125,13 @@ def interact(player):
             open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
             open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
             socketio.emit('item_positions', items)
+    for i in range(len(coins)):
+        if coins[i]['x'] == player.x and coins[i]['y'] == player.y:
+            player.coinCount+=1
+            coins.pop(i)
+            coins.insert(i,addCoin())
+            socketio.emit('coin_positions',coins)
+            print(player.coinCount)
     return player  # player has changed
 
 
@@ -189,6 +196,7 @@ class Player:
         self.lastMove = datetime.now()
         self.displayedAnywhere = True
         self.ally=[self.name]
+        self.coinCount=0
     def move(self, charin):
         '''deals with client input'''
         self.lastMove = datetime.now()
@@ -278,6 +286,18 @@ def createGrid():
                 grid[i][j] = 1
     return grid
 
+def addCoin():
+    x,y=0,0
+    while True:
+        x,y=randint(0,79),randint(0,79)
+        canplace=True
+        for i in items:
+            if i['x'] == x and i['y'] == y:
+                canplace = False
+        if grid[y][x]==1:
+            canplace=False
+        if canplace == True:
+            return {'x':x,'y':y}
 
 def weeklyReset():
     '''all characters lose all stats etc, only thing that stays is color, username'''
@@ -422,7 +442,8 @@ else: # just opens the files
         items = jsonpickle.decode(file.read())
     with open('data/messageinfo.json', 'r') as file:
         messages = jsonpickle.decode(file.read())
-
+coins=[addCoin() for i in range(100)]
+coins.append({'x':1,'y':1})
 
 @app.route("/login")
 def login():
@@ -453,13 +474,9 @@ def index():
             client_id = i
     if client_id == -1:
         players.append(Player(username))
-        print(players)
         open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
         client_id = len(players)-1
     session['ClientID'] = client_id
-    print(client_id)
-    print(username)
-    print(canrun)
     if canrun:
         return render_template('index.html')
     else:
@@ -509,7 +526,6 @@ def handle_message(msg):
         else:
             allywithidx=None
             for i in range(len(players)):
-                print(allywith==players[i].name)
                 if players[i].name == name:
                     ally2idx = i
                 elif players[i].name == allywith:
@@ -537,6 +553,7 @@ def handle_connect():
         players[client_id].visible = True
         players[client_id].displayedAnywhere = True
     join_room(client_id)
+    socketio.emit('coin_positions',coins)
     socketio.emit('client_id', client_id, room=client_id) # SIMPLIFY the emits
     socketio.emit('base_grid', grid)
     playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
