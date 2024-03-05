@@ -264,11 +264,13 @@ class Player:
         else:
             status = "offline"
         return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
-
     def getInfoForSpecificPlayer(self):
+        upgradecosts=['','']
+        for i in range(len(self.items)):
+            upgradecosts[i]=upgradeCosts[self.items[i]['rarity']]
         '''more detailed info about player, formatted by client'''
-        return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}',
-                f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s',
+        return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {upgradecosts[0]}',
+                f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s\n\nUpgrade Cost: {upgradecosts[1]}',
                 self.items]
 
 
@@ -292,7 +294,7 @@ def addCoin():
         x,y=randint(0,79),randint(0,79)
         canplace=True
         for i in items:
-            if i['x'] == x and i['y'] == y:
+            if i['x'] == y and i['y'] == x:
                 canplace = False
         if grid[y][x]==1:
             canplace=False
@@ -405,6 +407,7 @@ armourStats = [12, 14, 16, 19, 22]
 weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
 weaponMultiplier = [1, 1.25, 1.5, 2, 3]
 allygroups = []
+upgradeCosts={'common':20,'uncommon':40,'rare':80,'epic':160}
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     players, items, messages = [], [], []

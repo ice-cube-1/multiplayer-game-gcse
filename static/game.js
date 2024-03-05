@@ -35,7 +35,7 @@ socket.on('specificPlayerInfo', function (data) {
     for (let i = 0; i < 2; i++) { // gives more specific info about the player
         info[i] = info[i].split('\n')
         for (var j = 0; j < info[i].length; j++) {
-            infoctx.fillText(info[i][j], (i * 150) + 10, 600 + (j + 1) * 20)
+            infoctx.fillText(info[i][j], (i * 150) + 10, 570 + (j + 1) * 20)
         }
     }
     for (let i = 0; i < info[2].length; i++) { // adds images of equipped items
@@ -181,7 +181,7 @@ socket.on('new_positions', function (data) {
     img.src = `static/items-images/other/coin.png`;
     for (let i=0; i<coins.length; i++) {
         if ((0 <= coins[i]['x'] - screenxoffset && coins[i]['x'] - screenxoffset < screensize[0]) && (0 <= coins[i]['y'] - screenyoffset && coins[i]['y'] - screenyoffset < screensize[1])) {
-            ctx.drawImage(img, (coins[i]['x'] - screenxoffset) * scale, (coins[i]['y'] - screenyoffset) * scale, scale/2, scale/2);
+            ctx.drawImage(img, (coins[i]['x'] - screenxoffset+0.25) * scale, (coins[i]['y'] - screenyoffset+0.25) * scale, scale/2, scale/2);
         }
     }
 });
