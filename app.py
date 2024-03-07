@@ -407,7 +407,7 @@ armourStats = [12, 14, 16, 19, 22]
 weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
 weaponMultiplier = [1, 1.25, 1.5, 2, 3]
 allygroups = []
-upgradeCosts={'common':20,'uncommon':40,'rare':80,'epic':160}
+upgradeCosts={'common':20,'uncommon':40,'rare':80,'epic':160,'legendary':''}
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     players, items, messages = [], [], []
@@ -587,6 +587,19 @@ def handle_update_position(data):
     if not canrun:
         socketio.emit('redirect', {'url': '/login'})
 
+@socketio.on('upgrade_weapon')
+def handle_upgrade_weapon(data):
+    print('test')
+    playerid=data[1]
+    toupgrade=data[0]
+    if players[playerid].items[toupgrade]['rarity']!='legendary':
+        upgradecost=upgradeCosts[players[playerid].items[toupgrade]['rarity']]
+        if upgradecost<=players[playerid].coinCount :
+            players[playerid].coinCount-=upgradecost
+            players[playerid].items[toupgrade]['rarity'] = rarities[rarities.index(players[playerid].items[toupgrade]['rarity'])+1]
+            socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+            socketio.emit('specificPlayerInfo', [i.getInfoForSpecificPlayer() for i in players])
+    print(playerid,toupgrade)
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port='5000')  # LOCALTEST

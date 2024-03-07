@@ -19,6 +19,14 @@ var messageCount = 0;
 var allies = []
 var coins = []
 
+document.getElementById('Upgrade1').onclick = function () { // sends the messages
+    console.log(0,'help test')
+    socket.emit('upgrade_weapon',[0,id])
+}
+document.getElementById('Upgrade2').onclick = function () { // sends the messages
+    console.log(1,'help test')
+    socket.emit('upgrade_weapon',[1,id])
+}
 socket.on('PlayersInfo', function (data) {
     console.log(id,'hi')
     // gets the info but doesn't do anything with it
@@ -35,13 +43,13 @@ socket.on('specificPlayerInfo', function (data) {
     for (let i = 0; i < 2; i++) { // gives more specific info about the player
         info[i] = info[i].split('\n')
         for (var j = 0; j < info[i].length; j++) {
-            infoctx.fillText(info[i][j], (i * 150) + 10, 570 + (j + 1) * 20)
+            infoctx.fillText(info[i][j], (i * 200) + 10, 570 + (j + 1) * 20)
         }
     }
     for (let i = 0; i < info[2].length; i++) { // adds images of equipped items
         var img = new Image();
         img.src = `static/items-images/${info[2][i]['type']}${info[2][i]['weapontype']}/${info[2][i]['rarity']}.png`;
-        infoctx.drawImage(img, (i * 150) + 10, 700, 60, 60)
+        infoctx.drawImage(img, (i * 200) + 10, 700, 60, 60)
     }
 });
 var inputFocused = false;
@@ -95,6 +103,7 @@ socket.on('coin_positions',function (data) {
 socket.on('client_id', function (data) {
     id = data
 });
+
 socket.on('new_positions', function (data) {
     playerpos = data.objects;
     // works out where to draw the screen
