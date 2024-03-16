@@ -21,17 +21,6 @@ def checkplayer(x, y):
             return False
     return True
 
-
-def checkitem(x, y):
-    '''Checks if either an item or wall is in space'''
-    if grid[y][x] == 1:
-        return False
-    for i in items:
-        if (i['x'] == x and i['y'] == y):
-            return False
-    return True
-
-
 def rollDice(sides, number):
     '''Returns sum of NdX dice (can be .25)'''
     return sum([randint(1, sides) for i in range(int(number*4))])//4
@@ -44,16 +33,15 @@ def attack(toAttack, attacker):
         if players[toAttack].hp <= 0:  # if is dead
             players[toAttack].hp = 0
             for i in players[toAttack].items:  # drops loot (SIMPLIFY)
-                tryx, tryy = players[toAttack].x, players[toAttack].y
-                if i['type'] == 'armour':
-                    while not checkitem(tryx, tryy):
-                        tryx += 1
-                if i['type'] == 'weapon':
-                    while not checkitem(tryx, tryy):
-                        tryy -= 1
-                i['x'], i['y'] = tryx, tryy
+                i.x, i.y = players[toAttack].x, players[toAttack].y
+                if i.type == 'armour':
+                    while not i.checkitem():
+                        i.x += 1
+                if i.type == 'weapon':
+                    while not i.checkitem():
+                        i.y -= 1
                 items.append(i)
-            socketio.emit('item_positions', items)
+            socketio.emit('item_positions', [i.to_dict() for i in items])
             socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
             # stores everything that needs to be kept during respawn (SIMPLIFY)
             storeColor = players[toAttack].color
@@ -92,39 +80,37 @@ def findTarget(player):
 def interact(player):
     '''Picks up an item + edits your stats when you press E. Also drops your item if you have one'''
     for i in range(len(items)):
-        if items[i]['x'] == player.x and items[i]['y'] == player.y:
-            if items[i]['type'] == 'healing':  # comparatively simple as you just use it
-                player.hp += healingStats[rarities.index(items[i]['rarity'])]
+        if items[i].x == player.x and items[i].y == player.y:
+            if items[i].type == 'healing':  # comparatively simple as you just use it
+                player.hp += healingStats[rarities.index(items[i].rarity)]
                 if player.hp > player.maxhp:
                     player.hp = player.maxhp
-                items.append(createItem(items[i]['rarity'], "healing"))
+                items.append(Item(items[i].rarity, "healing"))
                 items.pop(i)
             else:
                 hadType = False
                 for j in range(len(player.items)):
                     # swaps all stats of the old and new items
-                    if player.items[j]['type'] == items[i]['type']:
-                        player.items[j]['weapontype'], items[i]['weapontype'] = items[i]['weapontype'], player.items[j]['weapontype']
-                        player.items[j]['type'], items[i]['type'] = items[i]['type'], player.items[j]['type']
-                        player.items[j]['rarity'], items[i]['rarity'] = items[i]['rarity'], player.items[j]['rarity']
+                    if player.items[j].type == items[i].type:
+                        player.items[j].weapontype, items[i].weapontype = items[i].weapontype, player.items[j].weapontype
+                        player.items[j].type, items[i].type = items[i].type, player.items[j].type
+                        player.items[j].rarity, items[i].rarity = items[i].rarity, player.items[j].rarity
                         hadType = True
                 if not hadType:  # otherwise adds it to their list of items
                     player.items.append(items[i])
                     items.pop(i)
                 for pickedup in player.items:  # modifies the stats - it does this to both items, no good reason as to why but it doesn't take much processing
-                    if pickedup['type'] == 'armour':
-                        player.ac = armourStats[rarities.index(
-                            pickedup['rarity'])]
+                    if pickedup.type == 'armour':
+                        player.ac = armourStats[rarities.index(pickedup.rarity)]
                     else:
-                        player.damage = weaponTypes[pickedup['weapontype']][0]
-                        player.range = weaponTypes[pickedup['weapontype']][1]
-                        player.attackSpeed = weaponTypes[pickedup['weapontype']][2]
-                        player.damageMultiplier = weaponMultiplier[rarities.index(
-                            pickedup['rarity'])]
+                        player.damage = weaponTypes[pickedup.weapontype][0]
+                        player.range = weaponTypes[pickedup.weapontype][1]
+                        player.attackSpeed = weaponTypes[pickedup.weapontype][2]
+                        player.damageMultiplier = weaponMultiplier[rarities.index(pickedup.weapontype)]
             # writes the new info to a file - more of a failsafe although useless as players is old
             open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
             open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
-            socketio.emit('item_positions', items)
+            socketio.emit('item_positions', [i.to_dict() for i in items])
     for i in range(len(coins)):
         if coins[i]['x'] == player.x and coins[i]['y'] == player.y:
             player.coinCount+=1
@@ -154,22 +140,38 @@ def zombify():
             playersInfo, key=lambda x: int(x[2]), reverse=True))
 
 
-def createItem(rarity, type):
-    '''Creates an item in a random place given a rarity and type'''
-    item = {}
-    item['x'] = 0
-    item['y'] = 0
-    while not checkitem(item['x'], item['y']):
-        item['x'] = randint(0, gridlx-1)
-        item['y'] = randint(0, gridlx-1)
-    item['rarity'] = rarity
-    item['type'] = type
-    if type != 'weapon':
-        item['weapontype'] = ""
-    else:
-        item['weapontype'] = choice(['/sword', '/spear', '/axe', '/bow'])
-    return item
+class Item:
+    def __init__(self, rarity, type):
+        '''Creates an item in a random place given a rarity and type'''
+        self.x = 0
+        self.y = 0
+        while not self.checkitem():
+            self.x = randint(0, gridlx-1)
+            self.y = randint(0, gridlx-1)
+        self.rarity = rarity
+        self.type = type
+        if self.type != 'weapon':
+            self.weapontype = ""
+        else:
+            self.weapontype = choice(['/sword', '/spear', '/axe', '/bow'])
 
+    def checkitem(self):
+        '''Checks if either an item or wall is in space'''
+        if grid[self.y][self.x] == 1:
+            return False
+        for i in items:
+            if (i.x == self.x and i.y == self.y):
+                return False
+        return True
+    
+    def to_dict(self):
+        return {
+            'rarity':self.rarity,
+            'type':self.type,
+            'weapontype':self.weapontype,
+            'x':self.x,
+            'y':self.y
+        }
 
 class Player:
     def __init__(self, name):
@@ -239,10 +241,10 @@ class Player:
         '''only what the client needs - simpler to serialize, more secure + less traffic'''
         weapontype, weaponrarity, armour = False, False, False
         for i in self.items:
-            if i['type'] == 'weapon':
-                weaponrarity,weapontype = i['rarity'],i['weapontype']
+            if i.type == 'weapon':
+                weaponrarity,weapontype = i.rarity,i.weapontype
             else:
-                armour = i['rarity']
+                armour = i.rarity
         return {
             'x': self.x,
             'y': self.y,
@@ -267,7 +269,7 @@ class Player:
     def getInfoForSpecificPlayer(self):
         upgradecosts=['','']
         for i in range(len(self.items)):
-            upgradecosts[i]=upgradeCosts[self.items[i]['rarity']]
+            upgradecosts[i]=upgradeCosts[self.items[i].rarity]
         '''more detailed info about player, formatted by client'''
         return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {upgradecosts[0]}',
                 f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s\n\nUpgrade Cost: {upgradecosts[1]}',
@@ -294,7 +296,7 @@ def addCoin():
         x,y=randint(0,79),randint(0,79)
         canplace=True
         for i in items:
-            if i['x'] == y and i['y'] == x:
+            if i.x == y and i.y == x:
                 canplace = False
         if grid[y][x]==1:
             canplace=False
@@ -320,7 +322,7 @@ def dailyReset():
     olditems = [i for i in items]
     items = []
     for i in olditems:
-        items.append(createItem(i['rarity'], i['type']))
+        items.append(Item(i.rarity, i.type))
     # should they be shown on the leaderboard
     if (datetime.now()-players[i].lastMove).total_seconds() > 60*60*24:
         players[i].displayedAnywhere = False
@@ -414,15 +416,15 @@ if not os.path.exists('data'): # sets up the files from scratch
     grid = createGrid()
     toadd=['healing','armour','weapon']
     for i in range(16):
-        [items.append(createItem("common", i)) for i in toadd]
+        [items.append(Item("common", i)) for i in toadd]
         if i % 2 == 0:
-            [items.append(createItem("uncommon", i)) for i in toadd]
+            [items.append(Item("uncommon", i)) for i in toadd]
         if i % 4 == 0:
-            [items.append(createItem("rare", i)) for i in toadd]
+            [items.append(Item("rare", i)) for i in toadd]
         if i % 8 == 0:
-            [items.append(createItem("epic", i)) for i in toadd]
+            [items.append(Item("epic", i)) for i in toadd]
         if i % 16 == 0:
-            [items.append(createItem("legendary", i)) for i in toadd]
+            [items.append(Item("legendary", i)) for i in toadd]
     open('data/grid.json', 'w').write(jsonpickle.encode(grid))
     open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
     open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
@@ -541,7 +543,7 @@ def handle_message(msg):
 @socketio.on('connect')
 def handle_connect():
     # emits everything the client needs and sends a message to everyone that they've joined
-    socketio.emit('item_positions', items)
+    socketio.emit('item_positions', [i.to_dict() for i in items])
     client_id = session.get('ClientID', 'Guest')
     if players[client_id].hp > 0:
         players[client_id].visible = True
@@ -583,11 +585,11 @@ def handle_upgrade_weapon(data):
     print('test')
     playerid=data[1]
     toupgrade=data[0]
-    if players[playerid].items[toupgrade]['rarity']!='legendary':
-        upgradecost=upgradeCosts[players[playerid].items[toupgrade]['rarity']]
+    if players[playerid].items[toupgrade].rarity!='legendary':
+        upgradecost=upgradeCosts[players[playerid].items[toupgrade].rarity]
         if upgradecost<=players[playerid].coinCount :
             players[playerid].coinCount-=upgradecost
-            players[playerid].items[toupgrade]['rarity'] = rarities[rarities.index(players[playerid].items[toupgrade]['rarity'])+1]
+            players[playerid].items[toupgrade].rarity = rarities[rarities.index(players[playerid].items[toupgrade].rarity)+1]
             socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
             socketio.emit('specificPlayerInfo', [i.getInfoForSpecificPlayer() for i in players])
     print(playerid,toupgrade)
