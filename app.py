@@ -99,7 +99,7 @@ def handle_update_position(data):
 
 @socketio.on('upgrade_weapon')
 def handle_upgrade_weapon(data):
-    handle_socket.weapon_upgrade()
+    handle_socket.weapon_upgrade(data)
 
 
 socketio.run(app, debug=True, port='5000')  # LOCALTEST

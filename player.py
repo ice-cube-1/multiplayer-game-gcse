@@ -96,12 +96,9 @@ class Player:
                     for j in range(len(self.items)):
                         # swaps all stats of the old and new global_vars.items
                         if self.items[j].type == global_vars.items[i].type:
-                            self.items[j].weapon_type, global_vars.items[i].weapon_type = global_vars.items[
-                                i].weapon_type, self.items[j].weapon_type
-                            self.items[j].type, global_vars.items[i].type = global_vars.items[i].type, self.items[
-                                j].type
-                            self.items[j].rarity, global_vars.items[i].rarity = global_vars.items[i].rarity, self.items[
-                                j].rarity
+                            self.items[j].weapon_type, global_vars.items[i].weapon_type = global_vars.items[i].weapon_type, self.items[j].weapon_type
+                            self.items[j].type, global_vars.items[i].type = global_vars.items[i].type, self.items[j].type
+                            self.items[j].rarity, global_vars.items[i].rarity = global_vars.items[i].rarity, self.items[j].rarity
                             had_type = True
                     if not had_type:  # otherwise adds it to their list of global_vars.items
                         self.items.append(global_vars.items[i])
@@ -114,8 +111,8 @@ class Player:
                             self.damage = global_vars.weapon_types[picked_up.weapon_type][0]
                             self.range = global_vars.weapon_types[picked_up.weapon_type][1]
                             self.attackSpeed = global_vars.weapon_types[picked_up.weapon_type][2]
-                            self.damageMultiplier = global_vars.weapon_multiplier[
-                                global_vars.rarities.index(picked_up.rarity)]
+                            self.damageMultiplier = global_vars.weapon_multiplier[global_vars.rarities.index(picked_up.rarity)]
+                socketio.emit('item_positions', [i.to_dict() for i in global_vars.items])
         for i in range(len(global_vars.coins)):
             if global_vars.coins[i]['x'] == self.x and global_vars.coins[i]['y'] == self.y:
                 self.coinCount += 1
@@ -142,10 +139,8 @@ class Player:
                         while not i.check_item():
                             i.y -= 1
                     global_vars.items.append(i)
-                socketio.emit('item_positions', [
-                    i.to_dict() for i in global_vars.items])
-                socketio.emit('new_positions', {"objects": [
-                    i.to_dict() for i in global_vars.players]})
+                socketio.emit('item_positions', [i.to_dict() for i in global_vars.items])
+                socketio.emit('new_positions', {"objects": [i.to_dict() for i in global_vars.players]})
                 # stores everything that needs to be kept during respawn (SIMPLIFY)
                 store_color = global_vars.players[to_attack].color
                 store_max_hp = global_vars.players[to_attack].max_hp - 1
