@@ -1,5 +1,5 @@
 from random import randint
-import globalvars
+import global_vars
 import jsonpickle
 
 
@@ -9,7 +9,7 @@ def rollDice(sides, number):
 
 
 def saveFiles():
-    open('data/itemsinfo.json','w').write(jsonpickle.encode(globalvars.items))
-    open('data/grid.json','w').write(jsonpickle.encode(globalvars.grid))
-    open('data/messageinfo.json','w').write(jsonpickle.encode(globalvars.messages))
-    open('data/playerinfo.json','w').write(jsonpickle.encode(globalvars.players))
+    open('data/items_info.json', 'w').write(jsonpickle.encode(global_vars.items))
+    open('data/grid.json','w').write(jsonpickle.encode(global_vars.grid))
+    open('data/message_info.json', 'w').write(jsonpickle.encode(global_vars.messages))
+    open('data/player_info.json', 'w').write(jsonpickle.encode(global_vars.players))

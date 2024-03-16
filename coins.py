@@ -1,17 +1,16 @@
 from random import randint
-# from globalvars import items, grid
-import globalvars
+# from global_vars import items, grid
+import global_vars
 
 
 def addCoin():
-    x, y = 0, 0
     while True:
         x, y = randint(0, 79), randint(0, 79)
-        canplace = True
-        for i in globalvars.items:
+        can_place = True
+        for i in global_vars.items:
             if i.x == y and i.y == x:
-                canplace = False
-        if globalvars.grid[y][x] == 1:
-            canplace = False
-        if canplace == True:
+                can_place = False
+        if global_vars.grid[y][x] == 1:
+            can_place = False
+        if can_place:
             return {'x': x, 'y': y}

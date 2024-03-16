@@ -1,24 +1,24 @@
 from datetime import datetime
-import globalvars
+import global_vars
 import threading
 from flasksetup import socketio
 
 
 def zombify():
-    '''Checks if there are any globalvars.players that should be offline and if so makes them invisible'''
+    '''Checks if there are any global_vars.players that should be offline and if so makes them invisible'''
     currentTime = datetime.now()
     with zombifyLock:
-        for i in range(len(globalvars.players)):
-            delta = currentTime - globalvars.players[i].lastMove
-            if delta.total_seconds() > 120 and globalvars.players[i].visible:
-                globalvars.players[i].visible = False
-                globalvars.messages.append(
-                    [f'{datetime.now().strftime("[%H:%M] ")}{globalvars.players[i].name} has gone offline', "black"])
-                socketio.emit('message', [globalvars.messages[-1]])
+        for i in range(len(global_vars.players)):
+            delta = currentTime - global_vars.players[i].last_move
+            if delta.total_seconds() > 120 and global_vars.players[i].visible:
+                global_vars.players[i].visible = False
+                global_vars.messages.append(
+                    [f'{datetime.now().strftime("[%H:%M] ")}{global_vars.players[i].name} has gone offline', "black"])
+                socketio.emit('message', [global_vars.messages[-1]])
         socketio.emit('new_positions', {"objects": [
-                      i.to_dict() for i in globalvars.players]})
+                      i.to_dict() for i in global_vars.players]})
         playersInfo = [i.getInfoInString()
-                       for i in globalvars.players if i.displayedAnywhere]
+                       for i in global_vars.players if i.displayed_anywhere]
         socketio.emit('PlayersInfo', sorted(
             playersInfo, key=lambda x: int(x[2]), reverse=True))
 

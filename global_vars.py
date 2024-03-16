@@ -1,0 +1,9 @@
+grid_x, grid_y = 80, 80
+rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
+healing_stats = [4, 6, 10, 16, 24]
+armour_stats = [12, 14, 16, 19, 22]
+weapon_types = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
+weapon_multiplier = [1, 1.25, 1.5, 2, 3]
+ally_groups, grid, messages, players, items, coins = [], [], [], [], [], []
+upgradeCosts = {'common': 20, 'uncommon': 40, 'rare': 80, 'epic': 160, 'legendary': ''}
+can_run = True

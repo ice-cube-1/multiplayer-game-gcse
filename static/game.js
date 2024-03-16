@@ -2,18 +2,18 @@ var canvas = document.getElementById("gameCanvas");
 var infoCanvas = document.getElementById("infoCanvas");
 var scale = 40
 var ctx = canvas.getContext("2d");
-var infoctx = infoCanvas.getContext('2d')
+var info_ctx = infoCanvas.getContext('2d')
 ctx.font = "15px Arial";
-infoctx.font = '15px Arial'
+info_ctx.font = '15px Arial'
 ctx.textAlign = "center";
 var socket = io.connect(document.location.protocol + '//' + document.domain + ':' + location.port);
 var id;
 var grid;
-var playerpos;
+var player_pos;
 var gridToRender = [];
 var screensize = [20, 20];
 var lastAttack = Date.now()
-var playersinfo = [];
+var players_info = [];
 var ul = document.getElementById('messages');
 var messageCount = 0;
 var allies = []
@@ -27,29 +27,29 @@ document.getElementById('Upgrade2').onclick = function () { // sends the message
     console.log(1,'help test')
     socket.emit('upgrade_weapon',[1,id])
 }
-socket.on('PlayersInfo', function (data) {
+socket.on('players_info', function (data) {
     console.log(id,'hi')
     // gets the info but doesn't do anything with it
-    playersinfo = data
+    players_info = data
 });
 socket.on('specificPlayerInfo', function (data) {
-    infoctx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
-    for (let i = 0; i < playersinfo.length; i++) { // writes stuff on the leaderboard in the correct color
-        infoctx.fillStyle = playersinfo[i][1];
-        infoctx.fillText(playersinfo[i][0], 10, (i + 1) * 20)
+    info_ctx.clearRect(0, 0, infoCanvas.width, infoCanvas.height);
+    for (let i = 0; i < players_info.length; i++) { // writes stuff on the leaderboard in the correct color
+        info_ctx.fillStyle = players_info[i][1];
+        info_ctx.fillText(players_info[i][0], 10, (i + 1) * 20)
     }
     info = data[id]
-    infoctx.fillStyle = 'black'
+    info_ctx.fillStyle = 'black'
     for (let i = 0; i < 2; i++) { // gives more specific info about the player
         info[i] = info[i].split('\n')
         for (var j = 0; j < info[i].length; j++) {
-            infoctx.fillText(info[i][j], (i * 200) + 10, 570 + (j + 1) * 20)
+            info_ctx.fillText(info[i][j], (i * 200) + 10, 570 + (j + 1) * 20)
         }
     }
     for (let i = 0; i < info[2].length; i++) { // adds images of equipped items
         var img = new Image();
-        img.src = `static/items-images/${info[2][i]['type']}${info[2][i]['weapontype']}/${info[2][i]['rarity']}.png`;
-        infoctx.drawImage(img, (i * 200) + 10, 700, 60, 60)
+        img.src = `static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png`;
+        info_ctx.drawImage(img, (i * 200) + 10, 700, 60, 60)
     }
 });
 var inputFocused = false;
@@ -77,7 +77,7 @@ socket.on('message', function (msgs) {
 });
 document.getElementById('form').onsubmit = function () { // sends the messages
     var input = document.getElementById('input');
-    socket.emit('message', [playerpos[id]['name'] + ': ' + input.value, playerpos[id]['color']]);
+    socket.emit('message', [player_pos[id]['name'] + ': ' + input.value, player_pos[id]['color']]);
     input.value = '';
     return false;
 };
@@ -105,34 +105,34 @@ socket.on('client_id', function (data) {
 });
 
 socket.on('new_positions', function (data) {
-    playerpos = data.objects;
+    player_pos = data.objects;
     // works out where to draw the screen
-    screenxoffset = playerpos[id]['x'] - screensize[0] / 2
-    screenyoffset = playerpos[id]['y'] - screensize[1] / 2
-    if (screenxoffset < 0) {
-        screenxoffset = 0
-    } else if (screenxoffset + screensize[0] >= grid[0].length) {
-        screenxoffset = grid[0].length - screensize[0]
+    screen_x_offset = player_pos[id]['x'] - screensize[0] / 2
+    screen_y_offset = player_pos[id]['y'] - screensize[1] / 2
+    if (screen_x_offset < 0) {
+        screen_x_offset = 0
+    } else if (screen_x_offset + screensize[0] >= grid[0].length) {
+        screen_x_offset = grid[0].length - screensize[0]
     }
-    if (screenyoffset < 0) {
-        screenyoffset = 0
-    } else if (screenyoffset + screensize[1] >= grid.length) {
-        screenyoffset = grid.length - screensize[1]
+    if (screen_y_offset < 0) {
+        screen_y_offset = 0
+    } else if (screen_y_offset + screensize[1] >= grid.length) {
+        screen_y_offset = grid.length - screensize[1]
     }
     // sets rectangles representing walls / open ground
     for (let i = 0; i < screensize[1]; i++) {
         gridToRender[i] = [];
         for (let j = 0; j < screensize[0]; j++) {
-            if (grid[i + screenyoffset][j + screenxoffset] == 0) {
+            if (grid[i + screen_y_offset][j + screen_x_offset] == 0) {
                 gridToRender[i][j] = "white";
             } else {
                 gridToRender[i][j] = "black";
             }
         }
     }
-    for (let i = 0; i < playerpos.length; i++) { // puts characters on the grid
-        if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1]) && playerpos[i]['visible'] == true) {
-            gridToRender[playerpos[i]['y'] - screenyoffset][playerpos[i]['x'] - screenxoffset] = playerpos[i]['color'];
+    for (let i = 0; i < player_pos.length; i++) { // puts characters on the grid
+        if ((0 <= player_pos[i]['x'] - screen_x_offset && player_pos[i]['x'] - screen_x_offset < screensize[0]) && (0 <= player_pos[i]['y'] - screen_y_offset && player_pos[i]['y'] - screen_y_offset < screensize[1]) && player_pos[i]['visible'] == true) {
+            gridToRender[player_pos[i]['y'] - screen_y_offset][player_pos[i]['x'] - screen_x_offset] = player_pos[i]['color'];
         }
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -155,42 +155,42 @@ socket.on('new_positions', function (data) {
             } 
         }
     }
-    for (let i = 0; i < playerpos.length; i++) { // puts text on characters displaying HP
-        if ((0 <= playerpos[i]['x'] - screenxoffset && playerpos[i]['x'] - screenxoffset < screensize[0]) && (0 <= playerpos[i]['y'] - screenyoffset && playerpos[i]['y'] - screenyoffset < screensize[1]) && playerpos[i]['visible'] == true) {
+    for (let i = 0; i < player_pos.length; i++) { // puts text on characters displaying HP
+        if ((0 <= player_pos[i]['x'] - screen_x_offset && player_pos[i]['x'] - screen_x_offset < screensize[0]) && (0 <= player_pos[i]['y'] - screen_y_offset && player_pos[i]['y'] - screen_y_offset < screensize[1]) && player_pos[i]['visible'] == true) {
             var img = new Image();
             img.src = `static/items-images/other/character.png`;
-            ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset) * scale, (playerpos[i]['y'] - screenyoffset) * scale, scale*(13/18), scale);  
-            if (playerpos[i]['armour'] != false) {
+            ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset) * scale, (player_pos[i]['y'] - screen_y_offset) * scale, scale*(13/18), scale);  
+            if (player_pos[i]['armour'] != false) {
                 var img = new Image();
-                img.src = `static/items-images/armour/${playerpos[i]['armour']}.png`
-                ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset +(1/18)) * scale, (playerpos[i]['y'] - screenyoffset-(3/18)) * scale,scale*(15/18),scale*(15/18))
+                img.src = `static/items-images/armour/${player_pos[i]['armour']}.png`
+                ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset +(1/18)) * scale, (player_pos[i]['y'] - screen_y_offset-(3/18)) * scale,scale*(15/18),scale*(15/18))
             }
-            if (playerpos[i]['weapon'] != false) {
+            if (player_pos[i]['weapon'] != false) {
                 var img = new Image();
-                img.src = `static/items-images/weapon${playerpos[i]['weapon']}/${playerpos[i]['weaponrarity']}.png`;
-                ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset +(11/18)) * scale, (playerpos[i]['y'] - screenyoffset+(3/18)) * scale,scale*(10/18),scale*(10/18))
+                img.src = `static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png`;
+                ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset +(11/18)) * scale, (player_pos[i]['y'] - screen_y_offset+(3/18)) * scale,scale*(10/18),scale*(10/18))
             }
             ctx.fillStyle = 'black';
-            ctx.fillText(playerpos[i]['hp'], (playerpos[i]['x'] - screenxoffset + 0.85) * scale, (playerpos[i]['y'] - screenyoffset) * scale)
-            if (allies.includes(playerpos[i]['name'])) {
+            ctx.fillText(player_pos[i]['hp'], (player_pos[i]['x'] - screen_x_offset + 0.85) * scale, (player_pos[i]['y'] - screen_y_offset) * scale)
+            if (allies.includes(player_pos[i]['name'])) {
                 var img = new Image();
                 img.src = `static/items-images/other/heart.png`;
-                ctx.drawImage(img, (playerpos[i]['x'] - screenxoffset + 0.5) * scale, (playerpos[i]['y'] - screenyoffset + 0.5) * scale + 10,scale/2,scale/2)
+                ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset + 0.5) * scale, (player_pos[i]['y'] - screen_y_offset + 0.5) * scale + 10,scale/2,scale/2)
             }
         }
     }
     for (let i = 0; i < items.length; i++) { // draws items
-        if ((0 <= items[i]['x'] - screenxoffset && items[i]['x'] - screenxoffset < screensize[0]) && (0 <= items[i]['y'] - screenyoffset && items[i]['y'] - screenyoffset < screensize[1])) {
+        if ((0 <= items[i]['x'] - screen_x_offset && items[i]['x'] - screen_x_offset < screensize[0]) && (0 <= items[i]['y'] - screen_y_offset && items[i]['y'] - screen_y_offset < screensize[1])) {
             var img = new Image();
-            img.src = `static/items-images/${items[i]['type']}${items[i]['weapontype']}/${items[i]['rarity']}.png`;
-            ctx.drawImage(img, (items[i]['x'] - screenxoffset) * scale, (items[i]['y'] - screenyoffset) * scale, scale, scale);
+            img.src = `static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png`;
+            ctx.drawImage(img, (items[i]['x'] - screen_x_offset) * scale, (items[i]['y'] - screen_y_offset) * scale, scale, scale);
         }
     }
     var img = new Image();
     img.src = `static/items-images/other/coin.png`;
     for (let i=0; i<coins.length; i++) {
-        if ((0 <= coins[i]['x'] - screenxoffset && coins[i]['x'] - screenxoffset < screensize[0]) && (0 <= coins[i]['y'] - screenyoffset && coins[i]['y'] - screenyoffset < screensize[1])) {
-            ctx.drawImage(img, (coins[i]['x'] - screenxoffset+0.25) * scale, (coins[i]['y'] - screenyoffset+0.25) * scale, scale/2, scale/2);
+        if ((0 <= coins[i]['x'] - screen_x_offset && coins[i]['x'] - screen_x_offset < screensize[0]) && (0 <= coins[i]['y'] - screen_y_offset && coins[i]['y'] - screen_y_offset < screensize[1])) {
+            ctx.drawImage(img, (coins[i]['x'] - screen_x_offset+0.25) * scale, (coins[i]['y'] - screen_y_offset+0.25) * scale, scale/2, scale/2);
         }
     }
 });
@@ -207,7 +207,7 @@ $(document).keydown(function (e) { // sends a movement to the server to be proce
         case 68: direction = 'D'; break;
         case 69: direction = 'E'; break;
         case 32:
-            if (currentTime - lastAttack < playerpos[id]['attackSpeed']) { return; }
+            if (currentTime - lastAttack < player_pos[id]['attackSpeed']) { return; }
             lastAttack = currentTime;
             direction = "Space";
             break;

@@ -1,4 +1,4 @@
-import globalvars
+import global_vars
 from datetime import datetime, timedelta
 import threading
 
@@ -14,17 +14,17 @@ def timeUntilMorning():
 
 def checkRunnable():
     while True:
-        globalvars.canrun = True
+        global_vars.can_run = True
         threading.Event().wait(timeUntilMorning())
         if datetime.today().weekday() < 5:
-            globalvars.canrun = False
+            global_vars.can_run = False
         threading.Event().wait(3.75*60*60)
-        globalvars.canrun = True
+        global_vars.can_run = True
         threading.Event.wait(45*60)
         if datetime.today().weekday() < 5:
-            globalvars.canrun = False
+            global_vars.can_run = False
         threading.Event.wait(3.25*60*60)
-        globalvars.canrun = True
+        global_vars.can_run = True
 
 
 offlineThread = threading.Thread(target=checkRunnable)
