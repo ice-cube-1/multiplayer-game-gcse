@@ -25,12 +25,12 @@ class Item:
             if (i.x == self.x and i.y == self.y):
                 return False
         return True
-    
+
     def to_dict(self):
         return {
-            'rarity':self.rarity,
-            'type':self.type,
-            'weapontype':self.weapontype,
-            'x':self.x,
-            'y':self.y
+            'rarity': self.rarity,
+            'type': self.type,
+            'weapontype': self.weapontype,
+            'x': self.x,
+            'y': self.y
         }

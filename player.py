@@ -1,4 +1,3 @@
-import jsonpickle
 from item import Item
 from random import randint
 from datetime import datetime
@@ -33,8 +32,9 @@ class Player:
         self.visible = True
         self.lastMove = datetime.now()
         self.displayedAnywhere = True
-        self.ally=[self.name]
-        self.coinCount=0
+        self.ally = [self.name]
+        self.coinCount = 0
+
     def move(self, charin):
         '''deals with client input'''
         self.lastMove = datetime.now()
@@ -79,16 +79,19 @@ class Player:
             if i.x == x and i.y == y and i.visible == True:
                 return False
         return True
-    
+
     def interact(self):
         '''Picks up an item + edits your stats when you press E. Also drops your item if you have one'''
         for i in range(len(globalvars.items)):
             if globalvars.items[i].x == self.x and globalvars.items[i].y == self.y:
-                if globalvars.items[i].type == 'healing':  # comparatively simple as you just use it
-                    self.hp += globalvars.healingStats[globalvars.rarities.index(globalvars.items[i].rarity)]
+                # comparatively simple as you just use it
+                if globalvars.items[i].type == 'healing':
+                    self.hp += globalvars.healingStats[globalvars.rarities.index(
+                        globalvars.items[i].rarity)]
                     if self.hp > self.maxhp:
                         self.hp = self.maxhp
-                    globalvars.items.append(Item(globalvars.items[i].rarity, "healing"))
+                    globalvars.items.append(
+                        Item(globalvars.items[i].rarity, "healing"))
                     globalvars.items.pop(i)
                 else:
                     hadType = False
@@ -104,31 +107,31 @@ class Player:
                         globalvars.items.pop(i)
                     for pickedup in self.items:  # modifies the stats - it does this to both globalvars.items, no good reason as to why but it doesn't take much processing
                         if pickedup.type == 'armour':
-                            self.ac = globalvars.armourStats[globalvars.rarities.index(pickedup.rarity)]
+                            self.ac = globalvars.armourStats[globalvars.rarities.index(
+                                pickedup.rarity)]
                         else:
                             self.damage = globalvars.weaponTypes[pickedup.weapontype][0]
                             self.range = globalvars.weaponTypes[pickedup.weapontype][1]
                             self.attackSpeed = globalvars.weaponTypes[pickedup.weapontype][2]
-                            self.damageMultiplier = globalvars.weaponMultiplier[globalvars.rarities.index(pickedup.rarity)]
-                # writes the new info to a file - more of a failsafe although useless as globalvars.players is old
-                open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players))
-                open('data/itemsinfo.json', 'w').write(jsonpickle.encode(globalvars.items))
-                socketio.emit('item_positions', [i.to_dict() for i in globalvars.items])
+                            self.damageMultiplier = globalvars.weaponMultiplier[globalvars.rarities.index(
+                                pickedup.rarity)]
         for i in range(len(globalvars.coins)):
             if globalvars.coins[i]['x'] == self.x and globalvars.coins[i]['y'] == self.y:
-                self.coinCount+=1
+                self.coinCount += 1
                 globalvars.coins.pop(i)
-                globalvars.coins.insert(i,addCoin())
-                socketio.emit('coin_positions',globalvars.coins)
+                globalvars.coins.insert(i, addCoin())
+                socketio.emit('coin_positions', globalvars.coins)
                 print(self.coinCount)
 
     def attack(self, toAttack):
         '''deals damage / kill logic from attack'''
         if rollDice(40, 1)+self.proficiency > globalvars.players[toAttack].ac:  # did it actually hit, if so do damage
-            globalvars.players[toAttack].hp -= rollDice(self.damage, self.damageMultiplier)+self.proficiency
+            globalvars.players[toAttack].hp -= rollDice(
+                self.damage, self.damageMultiplier)+self.proficiency
             if globalvars.players[toAttack].hp <= 0:  # if is dead
                 globalvars.players[toAttack].hp = 0
-                for i in globalvars.players[toAttack].globalvars.items:  # drops loot (SIMPLIFY)
+                # drops loot (SIMPLIFY)
+                for i in globalvars.players[toAttack].globalvars.items:
                     i.x, i.y = globalvars.players[toAttack].x, globalvars.players[toAttack].y
                     if i.type == 'armour':
                         while not i.checkitem():
@@ -137,21 +140,25 @@ class Player:
                         while not i.checkitem():
                             i.y -= 1
                     globalvars.items.append(i)
-                socketio.emit('item_positions', [i.to_dict() for i in globalvars.items])
-                socketio.emit('new_positions',  {"objects": [i.to_dict() for i in globalvars.players]})
+                socketio.emit('item_positions', [
+                              i.to_dict() for i in globalvars.items])
+                socketio.emit('new_positions',  {"objects": [
+                              i.to_dict() for i in globalvars.players]})
                 # stores everything that needs to be kept during respawn (SIMPLIFY)
                 storeColor = globalvars.players[toAttack].color
                 storemaxHP = globalvars.players[toAttack].maxhp-1
                 storeKills = globalvars.players[toAttack].killCount
                 storeProficiency = globalvars.players[toAttack].proficiency
-                globalvars.players[toAttack] = Player(globalvars.players[toAttack].name)
+                globalvars.players[toAttack] = Player(
+                    globalvars.players[toAttack].name)
                 globalvars.players[toAttack].color = storeColor
                 globalvars.players[toAttack].maxhp = storemaxHP
                 globalvars.players[toAttack].killCount = storeKills
                 globalvars.players[toAttack].proficiency = storeProficiency
                 globalvars.players[toAttack].hp = storemaxHP
                 # AT LEAST SOME SHOULD BE MODULARIZED
-                globalvars.messages.append([f'{datetime.now().strftime("[%H:%M] ")}{globalvars.players[toAttack].name} was killed by {self.name}', "black"])
+                globalvars.messages.append(
+                    [f'{datetime.now().strftime("[%H:%M] ")}{globalvars.players[toAttack].name} was killed by {self.name}', "black"])
                 socketio.emit('message', [globalvars.messages[-1]])
                 return 1  # add to kill count
         return 0  # did not kill
@@ -176,7 +183,7 @@ class Player:
         weapontype, weaponrarity, armour = False, False, False
         for i in self.items:
             if i.type == 'weapon':
-                weaponrarity,weapontype = i.rarity,i.weapontype
+                weaponrarity, weapontype = i.rarity, i.weapontype
             else:
                 armour = i.rarity
         return {
@@ -189,10 +196,10 @@ class Player:
             'visible': self.visible,
             'name': str(self.name),
             'weapon': weapontype,
-            'weaponrarity' : weaponrarity,
+            'weaponrarity': weaponrarity,
             'armour': armour
         }
-    
+
     def getInfoInString(self):
         '''for the leaderboard'''
         if self.visible:
@@ -200,10 +207,11 @@ class Player:
         else:
             status = "offline"
         return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
+
     def getInfoForSpecificPlayer(self):
-        upgradeCosts=['','']
+        upgradeCosts = ['', '']
         for i in range(len(self.items)):
-            upgradeCosts[i]=globalvars.upgradeCosts[self.items[i].rarity]
+            upgradeCosts[i] = globalvars.upgradeCosts[self.items[i].rarity]
         '''more detailed info about player, formatted by client'''
         return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {upgradeCosts[0]}',
                 f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s\n\nUpgrade Cost: {upgradeCosts[1]}',

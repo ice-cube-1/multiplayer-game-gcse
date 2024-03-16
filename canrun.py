@@ -11,6 +11,7 @@ def timeUntilMorning():
         scheduled += timedelta(days=1)
     return (scheduled-now).total_seconds()
 
+
 def checkRunnable():
     while True:
         globalvars.canrun = True

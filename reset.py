@@ -16,6 +16,7 @@ def TimeTillRun():
         scheduled += timedelta(days=1)
     return (scheduled-now).total_seconds()
 
+
 def weeklyReset():
     '''all characters lose all stats etc, only thing that stays is color, username'''
     for i in range(len(globalvars.players)):
@@ -40,15 +41,18 @@ def dailyReset():
         globalvars.players[i].displayedAnywhere = False
     # SIMPLIFY all of this could go into separate functions
     socketio.emit('base_grid', globalvars.grid)
-    playersInfo = [i.getInfoInString() for i in globalvars.players if i.displayedAnywhere]
+    playersInfo = [i.getInfoInString()
+                   for i in globalvars.players if i.displayedAnywhere]
     socketio.emit('specificPlayerInfo', [
                   i.getInfoForSpecificPlayer() for i in globalvars.players])
     socketio.emit('PlayersInfo', sorted(
         playersInfo, key=lambda x: int(x[2]), reverse=True))
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in globalvars.players]})
+    socketio.emit('new_positions', {"objects": [
+                  i.to_dict() for i in globalvars.players]})
     globalvars.messages.append(
         [f'{datetime.now().strftime("[%H:%M] ")}The game has reset overnight', "black"])
     socketio.emit('message', [globalvars.messages[-1]])
+
 
 def resetCheck():
     '''waits in a thread until next reset, then possibly does a weekly one before the daily one'''
@@ -57,6 +61,7 @@ def resetCheck():
         if datetime.today().weekday() == 0:
             weeklyReset()
         dailyReset()
+
 
 thread = threading.Thread(target=resetCheck)
 thread.start()

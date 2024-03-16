@@ -13,4 +13,5 @@ CORS(app)
 app.config.from_object(app_config)
 Session(app)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-auth = identity.web.Auth(session=session, authority=app.config.get("AUTHORITY"), client_id=app.config["CLIENT_ID"], client_credential=app.config["CLIENT_SECRET"],)
+auth = identity.web.Auth(session=session, authority=app.config.get(
+    "AUTHORITY"), client_id=app.config["CLIENT_ID"], client_credential=app.config["CLIENT_SECRET"],)
