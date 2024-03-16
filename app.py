@@ -80,11 +80,11 @@ def findTarget(player):
         if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True and players[i].name not in player.ally and player.name not in players[i].ally:
             if player.direction == 'W' and player.y - players[i].y > 0:
                 return attack(i, player)
-            elif player.direction == 'S' and players[i].y - player.y > 0:
+            if player.direction == 'S' and players[i].y - player.y > 0:
                 return attack(i, player)
             if player.direction == 'A' and player.x - players[i].x > 0:
                 return attack(i, player)
-            elif player.direction == 'D' and players[i].x - player.x > 0:
+            if player.direction == 'D' and players[i].x - player.x > 0:
                 return attack(i, player)
     return 0
 
@@ -412,26 +412,17 @@ if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     players, items, messages = [], [], []
     grid = createGrid()
+    toadd=['healing','armour','weapon']
     for i in range(16):
-        items.append(createItem("common", 'healing'))
-        items.append(createItem("common", 'armour'))
-        items.append(createItem("common", 'weapon'))
+        [items.append(createItem("common", i)) for i in toadd]
         if i % 2 == 0:
-            items.append(createItem("uncommon", 'healing'))
-            items.append(createItem("uncommon", 'armour'))
-            items.append(createItem("uncommon", 'weapon'))
+            [items.append(createItem("uncommon", i)) for i in toadd]
         if i % 4 == 0:
-            items.append(createItem("rare", 'healing'))
-            items.append(createItem("rare", 'armour'))
-            items.append(createItem("rare", 'weapon'))
+            [items.append(createItem("rare", i)) for i in toadd]
         if i % 8 == 0:
-            items.append(createItem("epic", 'healing'))
-            items.append(createItem("epic", 'armour'))
-            items.append(createItem("epic", 'weapon'))
+            [items.append(createItem("epic", i)) for i in toadd]
         if i % 16 == 0:
-            items.append(createItem("legendary", 'healing'))
-            items.append(createItem("legendary", 'armour'))
-            items.append(createItem("legendary", 'weapon'))
+            [items.append(createItem("legendary", i)) for i in toadd]
     open('data/grid.json', 'w').write(jsonpickle.encode(grid))
     open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
     open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
@@ -457,7 +448,7 @@ def login():
 
 @app.route(app_config.REDIRECT_PATH)
 def auth_response():
-    result = auth.complete_log_in(request.args)
+    auth.complete_log_in(request.args)
     session['username'] = auth.get_user().get('name')
     print(auth.get_user().get('name'))
     return redirect(url_for("index"))
