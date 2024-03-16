@@ -1,4 +1,4 @@
-from globalvars import gridlx, gridly, grid, items
+import globalvars
 from random import randint, choice
 
 
@@ -8,8 +8,8 @@ class Item:
         self.x = 0
         self.y = 0
         while not self.checkitem():
-            self.x = randint(0, gridlx-1)
-            self.y = randint(0, gridly-1)
+            self.x = randint(0, globalvars.gridlx-1)
+            self.y = randint(0, globalvars.gridly-1)
         self.rarity = rarity
         self.type = type
         if self.type != 'weapon':
@@ -19,9 +19,9 @@ class Item:
 
     def checkitem(self):
         '''Checks if either an item or wall is in space'''
-        if grid[self.y][self.x] == 1:
+        if globalvars.grid[self.y][self.x] == 1:
             return False
-        for i in items:
+        for i in globalvars.items:
             if (i.x == self.x and i.y == self.y):
                 return False
         return True

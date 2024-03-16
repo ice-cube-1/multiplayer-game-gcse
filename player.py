@@ -2,7 +2,7 @@ import jsonpickle
 from item import Item
 from random import randint
 from datetime import datetime
-import socketio
+from flasksetup import socketio
 import math
 from utils import rollDice
 from coins import addCoin
@@ -109,7 +109,7 @@ class Player:
                             self.damage = globalvars.weaponTypes[pickedup.weapontype][0]
                             self.range = globalvars.weaponTypes[pickedup.weapontype][1]
                             self.attackSpeed = globalvars.weaponTypes[pickedup.weapontype][2]
-                            self.damageMultiplier = globalvars.weaponMultiplier[globalvars.rarities.index(pickedup.weapontype)]
+                            self.damageMultiplier = globalvars.weaponMultiplier[globalvars.rarities.index(pickedup.rarity)]
                 # writes the new info to a file - more of a failsafe although useless as globalvars.players is old
                 open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players))
                 open('data/itemsinfo.json', 'w').write(jsonpickle.encode(globalvars.items))
@@ -201,10 +201,10 @@ class Player:
             status = "offline"
         return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
     def getInfoForSpecificPlayer(self):
-        globalvars.upgradeCosts=['','']
+        upgradeCosts=['','']
         for i in range(len(self.items)):
-            globalvars.upgradeCosts[i]=globalvars.upgradeCosts[self.items[i].rarity]
+            upgradeCosts[i]=globalvars.upgradeCosts[self.items[i].rarity]
         '''more detailed info about player, formatted by client'''
-        return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {globalvars.upgradeCosts[0]}',
-                f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s\n\nUpgrade Cost: {globalvars.upgradeCosts[1]}',
-                self.items]
+        return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {upgradeCosts[0]}',
+                f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s\n\nUpgrade Cost: {upgradeCosts[1]}',
+                [i.to_dict() for i in self.items]]

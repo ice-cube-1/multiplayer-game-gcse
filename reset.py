@@ -1,7 +1,7 @@
 import globalvars
 from datetime import datetime, timedelta
 import threading
-import socketio
+from flasksetup import socketio
 from player import Player
 from setup import createGrid
 from item import Item

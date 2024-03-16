@@ -1,7 +1,7 @@
 from datetime import datetime
 import globalvars
 import threading
-import socketio
+from flasksetup import socketio
 
 def zombify():
     '''Checks if there are any globalvars.players that should be offline and if so makes them invisible'''
@@ -26,7 +26,6 @@ def waitZombify():
     '''waits between offline checks'''
     while True:
         threading.Event().wait(5)
-        print('zombiee')
         zombify()
 
 zombifyThread = threading.Thread(target=waitZombify)
