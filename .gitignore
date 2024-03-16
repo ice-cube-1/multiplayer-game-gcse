@@ -3,3 +3,4 @@ app_config.py
 __pycache__/
 flask_session/
 tempapp.py
+.idea/

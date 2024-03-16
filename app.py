@@ -2,7 +2,6 @@ from random import randint, choice
 from flask import Flask, render_template, request, redirect, url_for, session
 from flask_socketio import SocketIO, join_room
 from flask_cors import CORS
-import math
 from datetime import datetime, timedelta
 import jsonpickle
 import os
@@ -12,331 +11,77 @@ import identity
 import identity.web
 from flask_session import Session
 import app_config
-
-
-def checkplayer(x, y):
-    '''Checks if a player is in space'''
-    for i in players:
-        if i.x == x and i.y == y and i.visible == True:
-            return False
-    return True
-
-def rollDice(sides, number):
-    '''Returns sum of NdX dice (can be .25)'''
-    return sum([randint(1, sides) for i in range(int(number*4))])//4
-
-
-def attack(toAttack, attacker):
-    '''deals damage / kill logic from attack'''
-    if rollDice(40, 1)+attacker.proficiency > players[toAttack].ac:  # did it actually hit, if so do damage
-        players[toAttack].hp -= rollDice(attacker.damage, attacker.damageMultiplier)+attacker.proficiency
-        if players[toAttack].hp <= 0:  # if is dead
-            players[toAttack].hp = 0
-            for i in players[toAttack].items:  # drops loot (SIMPLIFY)
-                i.x, i.y = players[toAttack].x, players[toAttack].y
-                if i.type == 'armour':
-                    while not i.checkitem():
-                        i.x += 1
-                if i.type == 'weapon':
-                    while not i.checkitem():
-                        i.y -= 1
-                items.append(i)
-            socketio.emit('item_positions', [i.to_dict() for i in items])
-            socketio.emit('new_positions',  {"objects": [i.to_dict() for i in players]})
-            # stores everything that needs to be kept during respawn (SIMPLIFY)
-            storeColor = players[toAttack].color
-            storemaxHP = players[toAttack].maxhp-1
-            storeKills = players[toAttack].killCount
-            storeProficiency = players[toAttack].proficiency
-            players[toAttack] = Player(players[toAttack].name)
-            players[toAttack].color = storeColor
-            players[toAttack].maxhp = storemaxHP
-            players[toAttack].killCount = storeKills
-            players[toAttack].proficiency = storeProficiency
-            players[toAttack].hp = storemaxHP
-            # AT LEAST SOME SHOULD BE MODULARIZED
-            messages.append([f'{datetime.now().strftime("[%H:%M] ")}{players[toAttack].name} was killed by {attacker.name}', "black"])
-            socketio.emit('message', [messages[-1]])
-            return 1  # add to kill count
-    return 0  # did not kill
-
-
-def findTarget(player):
-    '''Attacks the first (presumes there's only one) player in range'''
-    '''Does this based on both range in a semicircle and direction'''
-    for i in range(len(players)):
-        if (player.x-players[i].x)**2+(player.y-players[i].y)**2 <= player.range**2 and players[i].visible == True and players[i].name not in player.ally and player.name not in players[i].ally:
-            if player.direction == 'W' and player.y - players[i].y > 0:
-                return attack(i, player)
-            if player.direction == 'S' and players[i].y - player.y > 0:
-                return attack(i, player)
-            if player.direction == 'A' and player.x - players[i].x > 0:
-                return attack(i, player)
-            if player.direction == 'D' and players[i].x - player.x > 0:
-                return attack(i, player)
-    return 0
-
-
-def interact(player):
-    '''Picks up an item + edits your stats when you press E. Also drops your item if you have one'''
-    for i in range(len(items)):
-        if items[i].x == player.x and items[i].y == player.y:
-            if items[i].type == 'healing':  # comparatively simple as you just use it
-                player.hp += healingStats[rarities.index(items[i].rarity)]
-                if player.hp > player.maxhp:
-                    player.hp = player.maxhp
-                items.append(Item(items[i].rarity, "healing"))
-                items.pop(i)
-            else:
-                hadType = False
-                for j in range(len(player.items)):
-                    # swaps all stats of the old and new items
-                    if player.items[j].type == items[i].type:
-                        player.items[j].weapontype, items[i].weapontype = items[i].weapontype, player.items[j].weapontype
-                        player.items[j].type, items[i].type = items[i].type, player.items[j].type
-                        player.items[j].rarity, items[i].rarity = items[i].rarity, player.items[j].rarity
-                        hadType = True
-                if not hadType:  # otherwise adds it to their list of items
-                    player.items.append(items[i])
-                    items.pop(i)
-                for pickedup in player.items:  # modifies the stats - it does this to both items, no good reason as to why but it doesn't take much processing
-                    if pickedup.type == 'armour':
-                        player.ac = armourStats[rarities.index(pickedup.rarity)]
-                    else:
-                        player.damage = weaponTypes[pickedup.weapontype][0]
-                        player.range = weaponTypes[pickedup.weapontype][1]
-                        player.attackSpeed = weaponTypes[pickedup.weapontype][2]
-                        player.damageMultiplier = weaponMultiplier[rarities.index(pickedup.weapontype)]
-            # writes the new info to a file - more of a failsafe although useless as players is old
-            open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
-            open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
-            socketio.emit('item_positions', [i.to_dict() for i in items])
-    for i in range(len(coins)):
-        if coins[i]['x'] == player.x and coins[i]['y'] == player.y:
-            player.coinCount+=1
-            coins.pop(i)
-            coins.insert(i,addCoin())
-            socketio.emit('coin_positions',coins)
-            print(player.coinCount)
-    return player  # player has changed
-
+from player import Player
+from item import Item
+#from globalvars import globalvars.gridlx, globalvars.gridly, globalvars.allygroups, globalvars.rarities, globalvars.upgradeCosts
+import globalvars
+import coins
 
 def zombify():
-    '''Checks if there are any players that should be offline and if so makes them invisible'''
+    '''Checks if there are any globalvars.players that should be offline and if so makes them invisible'''
     currentTime = datetime.now()
     with zombifyLock:
-        for i in range(len(players)):
-            delta = currentTime - players[i].lastMove
-            if delta.total_seconds() > 120 and players[i].visible:
-                players[i].visible = False
-                messages.append(
-                    [f'{datetime.now().strftime("[%H:%M] ")}{players[i].name} has gone offline', "black"])
-                socketio.emit('message', [messages[-1]])
+        for i in range(len(globalvars.players)):
+            delta = currentTime - globalvars.players[i].lastMove
+            if delta.total_seconds() > 120 and globalvars.players[i].visible:
+                globalvars.players[i].visible = False
+                globalvars.messages.append(
+                    [f'{datetime.now().strftime("[%H:%M] ")}{globalvars.players[i].name} has gone offline', "black"])
+                socketio.emit('message', [globalvars.messages[-1]])
         socketio.emit('new_positions', {"objects": [
-                      i.to_dict() for i in players]})
+                      i.to_dict() for i in globalvars.players]})
         playersInfo = [i.getInfoInString()
-                       for i in players if i.displayedAnywhere]
+                       for i in globalvars.players if i.displayedAnywhere]
         socketio.emit('PlayersInfo', sorted(
             playersInfo, key=lambda x: int(x[2]), reverse=True))
 
 
-class Item:
-    def __init__(self, rarity, type):
-        '''Creates an item in a random place given a rarity and type'''
-        self.x = 0
-        self.y = 0
-        while not self.checkitem():
-            self.x = randint(0, gridlx-1)
-            self.y = randint(0, gridlx-1)
-        self.rarity = rarity
-        self.type = type
-        if self.type != 'weapon':
-            self.weapontype = ""
-        else:
-            self.weapontype = choice(['/sword', '/spear', '/axe', '/bow'])
-
-    def checkitem(self):
-        '''Checks if either an item or wall is in space'''
-        if grid[self.y][self.x] == 1:
-            return False
-        for i in items:
-            if (i.x == self.x and i.y == self.y):
-                return False
-        return True
-    
-    def to_dict(self):
-        return {
-            'rarity':self.rarity,
-            'type':self.type,
-            'weapontype':self.weapontype,
-            'x':self.x,
-            'y':self.y
-        }
-
-class Player:
-    def __init__(self, name):
-        # all the variables for it - SIMPLIFY
-        self.x = 0
-        self.y = 0
-        while grid[self.y][self.x] != 0:
-            self.x = randint(0, gridlx-1)
-            self.y = randint(0, gridlx-1)
-        self.name = name
-        self.color = f'rgb({randint(0,255)},{randint(0,255)},{randint(0,255)})'
-        self.hp = 40
-        self.maxhp = 40
-        self.damage = 4
-        self.damageMultiplier = 1
-        self.ac = 10
-        self.range = 1
-        self.attackSpeed = 0.3
-        self.items = []
-        self.proficiency = 0
-        self.direction = 'W'
-        self.killCount = 0
-        self.visible = True
-        self.lastMove = datetime.now()
-        self.displayedAnywhere = True
-        self.ally=[self.name]
-        self.coinCount=0
-    def move(self, charin):
-        '''deals with client input'''
-        self.lastMove = datetime.now()
-        if self.visible == False:  # come back online
-            self.visible = True
-            self.displayedAnywhere = True
-            messages.append(
-                [f'{datetime.now().strftime("[%H:%M] ")}{self.name} has joined', "black"])
-            socketio.emit('message', [messages[-1]])
-        if charin == "W":
-            # SIMPLIFY by just putting the gridcheck in checkplayer
-            if grid[self.y-1][self.x] == 0 and checkplayer(self.x, self.y-1):
-                self.y -= 1
-            self.direction = 'W'
-        elif charin == "S":
-            if grid[self.y+1][self.x] == 0 and checkplayer(self.x, self.y+1):
-                self.y += 1
-            self.direction = 'S'
-        elif charin == "A":
-            if grid[self.y][self.x-1] == 0 and checkplayer(self.x-1, self.y):
-                self.x -= 1
-            self.direction = 'A'
-        elif charin == "D":
-            if grid[self.y][self.x+1] == 0 and checkplayer(self.x+1, self.y):
-                self.x += 1
-            self.direction = 'D'
-        elif charin == "Space":
-            # which actually returns the killcount from the attack function if called
-            self.killCount += findTarget(self)
-            playersInfo = [i.getInfoInString()
-                           for i in players if i.displayedAnywhere]
-            self.proficiency = math.floor(math.log(self.killCount+1, 2))
-            self.maxhp = 40+self.killCount
-            socketio.emit('PlayersInfo', sorted(
-                playersInfo, key=lambda x: int(x[2]), reverse=True))
-        elif charin == "E":
-            self = interact(self)
-
-    def to_dict(self):
-        '''only what the client needs - simpler to serialize, more secure + less traffic'''
-        weapontype, weaponrarity, armour = False, False, False
-        for i in self.items:
-            if i.type == 'weapon':
-                weaponrarity,weapontype = i.rarity,i.weapontype
-            else:
-                armour = i.rarity
-        return {
-            'x': self.x,
-            'y': self.y,
-            'color': self.color,
-            'attackSpeed': self.attackSpeed*1000,
-            'hp': self.hp,
-            'name': self.name,
-            'visible': self.visible,
-            'name': str(self.name),
-            'weapon': weapontype,
-            'weaponrarity' : weaponrarity,
-            'armour': armour
-        }
-
-    def getInfoInString(self):
-        '''for the leaderboard'''
-        if self.visible:
-            status = "online"
-        else:
-            status = "offline"
-        return f'{self.name}: {self.hp}/{self.maxhp} - Level {self.proficiency}, {self.killCount} kills ({status})', self.color, self.killCount
-    def getInfoForSpecificPlayer(self):
-        upgradecosts=['','']
-        for i in range(len(self.items)):
-            upgradecosts[i]=upgradeCosts[self.items[i].rarity]
-        '''more detailed info about player, formatted by client'''
-        return [f'{self.name}:\nLevel: {self.proficiency} ({self.killCount} kills)\nHP: {self.hp}/{self.maxhp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {upgradecosts[0]}',
-                f'\nDamage: {math.floor(self.damageMultiplier+self.proficiency)}-{math.floor((self.damageMultiplier*self.damage)+self.proficiency)}\nRange: {self.range}\nAttack speed: {self.attackSpeed}s\n\nUpgrade Cost: {upgradecosts[1]}',
-                self.items]
-
-
 def createGrid():
     '''creates a grid with walls at the edge and in random places'''
-    grid = [[0 for i in range(gridlx)] for j in range(gridly)]
-    for i in range(gridly):
-        if i == 0 or i == gridly-1:
-            grid[i] = [1 for i in range(gridlx)]
+    globalvars.grid = [[0 for i in range(globalvars.gridlx)] for j in range(globalvars.gridly)]
+    for i in range(globalvars.gridly):
+        if i == 0 or i == globalvars.gridly-1:
+            globalvars.grid[i] = [1 for i in range(globalvars.gridlx)]
         else:
-            grid[i][-1] = 1
-            grid[i][0] = 1
-        for j in range(gridlx):
+            globalvars.grid[i][-1] = 1
+            globalvars.grid[i][0] = 1
+        for j in range(globalvars.gridlx):
             if randint(0, 9) < 1:
-                grid[i][j] = 1
-    return grid
-
-def addCoin():
-    x,y=0,0
-    while True:
-        x,y=randint(0,79),randint(0,79)
-        canplace=True
-        for i in items:
-            if i.x == y and i.y == x:
-                canplace = False
-        if grid[y][x]==1:
-            canplace=False
-        if canplace == True:
-            return {'x':x,'y':y}
+                globalvars.grid[i][j] = 1
 
 def weeklyReset():
     '''all characters lose all stats etc, only thing that stays is color, username'''
-    for i in range(len(players)):
-        for j in players[i].items:
-            items.append(j)
-        storeColor = players[i].color
-        storelastmove = players[i].lastMove  # SIMPLIFY STORES
-        players[i] = Player(players[i].name)
-        players[i].color = storeColor
-        players[i].lastMove = storelastmove
+    for i in range(len(globalvars.players)):
+        for j in globalvars.players[i].items:
+            globalvars.items.append(j)
+        storeColor = globalvars.players[i].color
+        storelastmove = globalvars.players[i].lastMove  # SIMPLIFY STORES
+        globalvars.players[i] = Player(globalvars.players[i].name)
+        globalvars.players[i].color = storeColor
+        globalvars.players[i].lastMove = storelastmove
 
 
 def dailyReset():
-    '''grid regeneates, items on board lose'''
-    global items
-    grid = createGrid()
-    olditems = [i for i in items]
-    items = []
+    '''grid regeneates, globalvars.items on board lose'''
+    createGrid()
+    olditems = [i for i in globalvars.items]
+    globalvars.items = []
     for i in olditems:
-        items.append(Item(i.rarity, i.type))
+        globalvars.items.append(Item(i.rarity, i.type))
     # should they be shown on the leaderboard
-    if (datetime.now()-players[i].lastMove).total_seconds() > 60*60*24:
-        players[i].displayedAnywhere = False
+    if (datetime.now()-globalvars.players[i].lastMove).total_seconds() > 60*60*24:
+        globalvars.players[i].displayedAnywhere = False
     # SIMPLIFY all of this could go into separate functions
-    socketio.emit('base_grid', grid)
-    playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
+    socketio.emit('base_grid', globalvars.grid)
+    playersInfo = [i.getInfoInString() for i in globalvars.players if i.displayedAnywhere]
     socketio.emit('specificPlayerInfo', [
-                  i.getInfoForSpecificPlayer() for i in players])
+                  i.getInfoForSpecificPlayer() for i in globalvars.players])
     socketio.emit('PlayersInfo', sorted(
         playersInfo, key=lambda x: int(x[2]), reverse=True))
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-    messages.append(
+    socketio.emit('new_positions', {"objects": [i.to_dict() for i in globalvars.players]})
+    globalvars.messages.append(
         [f'{datetime.now().strftime("[%H:%M] ")}The game has reset overnight', "black"])
-    socketio.emit('message', [messages[-1]])
+    socketio.emit('message', [globalvars.messages[-1]])
 
 
 def TimeTillRun():
@@ -402,43 +147,34 @@ zombifyThread.start()
 zombifyLock = threading.Lock()
 offlineThread = threading.Thread(target=checkRunnable)
 offlineThread.start()
-gridlx, gridly = 80, 80
-rarities = ['common', 'uncommon', 'rare', 'epic', 'legendary']
-healingStats = [4, 6, 10, 16, 24]
-armourStats = [12, 14, 16, 19, 22]
-weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.5], "/bow": [6, 5, 0.5]}
-weaponMultiplier = [1, 1.25, 1.5, 2, 3]
-allygroups = []
-upgradeCosts={'common':20,'uncommon':40,'rare':80,'epic':160,'legendary':''}
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
-    players, items, messages = [], [], []
-    grid = createGrid()
+    createGrid()
     toadd=['healing','armour','weapon']
     for i in range(16):
-        [items.append(Item("common", i)) for i in toadd]
+        [globalvars.items.append(Item("common", i)) for i in toadd]
         if i % 2 == 0:
-            [items.append(Item("uncommon", i)) for i in toadd]
+            [globalvars.items.append(Item("uncommon", i)) for i in toadd]
         if i % 4 == 0:
-            [items.append(Item("rare", i)) for i in toadd]
+            [globalvars.items.append(Item("rare", i)) for i in toadd]
         if i % 8 == 0:
-            [items.append(Item("epic", i)) for i in toadd]
+            [globalvars.items.append(Item("epic", i)) for i in toadd]
         if i % 16 == 0:
-            [items.append(Item("legendary", i)) for i in toadd]
-    open('data/grid.json', 'w').write(jsonpickle.encode(grid))
-    open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
-    open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
-    open('data/messageinfo.json', 'w').write(jsonpickle.encode(messages))
+            [globalvars.items.append(Item("legendary", i)) for i in toadd]
+    open('data/grid.json', 'w').write(jsonpickle.encode(globalvars.grid))
+    open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players))
+    open('data/itemsinfo.json', 'w').write(jsonpickle.encode(globalvars.items))
+    open('data/messageinfo.json', 'w').write(jsonpickle.encode(globalvars.messages))
 else: # just opens the files
     with open('data/grid.json', 'r') as file:
-        grid = jsonpickle.decode(file.read())
+        globalvars.grid = jsonpickle.decode(file.read())
     with open('data/playerinfo.json', 'r') as file:
-        players = jsonpickle.decode(file.read())
+        globalvars.players = jsonpickle.decode(file.read())
     with open('data/itemsinfo.json', 'r') as file:
-        items = jsonpickle.decode(file.read())
+        globalvars.items = jsonpickle.decode(file.read())
     with open('data/messageinfo.json', 'r') as file:
-        messages = jsonpickle.decode(file.read())
-coins=[addCoin() for i in range(100)]
+        globalvars.messages = jsonpickle.decode(file.read())
+coins=[coins.addCoin() for i in range(100)]
 coins.append({'x':1,'y':1})
 
 @app.route("/login")
@@ -465,13 +201,13 @@ def index():
     if not username or username == 'Guest':
         return redirect(url_for("login"))
     client_id = -1
-    for i in range(len(players)):
-        if username == players[i].name:
+    for i in range(len(globalvars.players)):
+        if username == globalvars.players[i].name:
             client_id = i
     if client_id == -1:
-        players.append(Player(username))
-        open('data/playerinfo.json', 'w').write(jsonpickle.encode(players))
-        client_id = len(players)-1
+        globalvars.players.append(Player(username))
+        open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players))
+        client_id = len(globalvars.players)-1
     session['ClientID'] = client_id
     if canrun:
         return render_template('index.html')
@@ -494,89 +230,89 @@ def handle_message(msg):
         if allywith[:7] == 'remove ':
             toremove = allywith[7:]
             toremoveidx=None
-            for i in range(len(players)):
-                if players[i].name == name:
+            for i in range(len(globalvars.players)):
+                if globalvars.players[i].name == name:
                     removeridx = i
-                elif players[i].name == toremove:
+                elif globalvars.players[i].name == toremove:
                     toremoveidx = i
-            if toremove in players[removeridx].ally:
-                players[toremoveidx].ally.remove(name)
-                players[removeridx].ally.append(toremove)
+            if toremove in globalvars.players[removeridx].ally:
+                globalvars.players[toremoveidx].ally.remove(name)
+                globalvars.players[removeridx].ally.append(toremove)
                 socketio.emit('message',[[f'{name} has revoked their ally with {toremove}']])
             else:
                 socketio.emit('message',[[f'You have not allied with {toremove}','black']],room=removeridx)
         elif allywith == 'confirm':
-            for i in range(len(allygroups)):
-                if allygroups[i][1][0] == name:
-                    players[allygroups[i][1][1]].ally.append(allygroups[i][0][0])
-                    players[allygroups[i][0][1]].ally.append(allygroups[i][1][0])
-                    socketio.emit('message',[[f'{allygroups[i][1][0]} has confirmed your alliance','black']],room=allygroups[i][0][1])
-                    socketio.emit('message',[[f'You have confirmed your alliance with {allygroups[i][0][0]}','black']],room=allygroups[i][1][1])
-                    allygroups[i][1][0] = None
-                    socketio.emit('allies',players[allygroups[i][1][1]].ally, room=players[allygroups[i][1][1]])
-                    socketio.emit('allies',players[allygroups[i][0][1]].ally, room=players[allygroups[i][0][1]])
+            for i in range(len(globalvars.allygroups)):
+                if globalvars.allygroups[i][1][0] == name:
+                    globalvars.players[globalvars.allygroups[i][1][1]].ally.append(globalvars.allygroups[i][0][0])
+                    globalvars.players[globalvars.allygroups[i][0][1]].ally.append(globalvars.allygroups[i][1][0])
+                    socketio.emit('message',[[f'{globalvars.allygroups[i][1][0]} has confirmed your alliance','black']],room=globalvars.allygroups[i][0][1])
+                    socketio.emit('message',[[f'You have confirmed your alliance with {globalvars.allygroups[i][0][0]}','black']],room=globalvars.allygroups[i][1][1])
+                    globalvars.allygroups[i][1][0] = None
+                    socketio.emit('allies',globalvars.players[globalvars.allygroups[i][1][1]].ally, room=globalvars.players[globalvars.allygroups[i][1][1]])
+                    socketio.emit('allies',globalvars.players[globalvars.allygroups[i][0][1]].ally, room=globalvars.players[globalvars.allygroups[i][0][1]])
         elif allywith == 'cancel':
-            for i in range(len(allygroups)):
-                if allygroups[i][1][0] == name:
-                    allygroups[i][1][0] = None
+            for i in range(len(globalvars.allygroups)):
+                if globalvars.allygroups[i][1][0] == name:
+                    globalvars.allygroups[i][1][0] = None
         else:
             allywithidx=None
-            for i in range(len(players)):
-                if players[i].name == name:
+            for i in range(len(globalvars.players)):
+                if globalvars.players[i].name == name:
                     ally2idx = i
-                elif players[i].name == allywith:
+                elif globalvars.players[i].name == allywith:
                     allywithidx = i
             socketio.emit('message',[[datetime.now().strftime('[%H:%M] ')+msg[0],msg[1]]], room = ally2idx)
             if allywithidx!=None:
                 socketio.emit('message',[[f'{name} wants to ally with you. Type "/ally confirm" to confirm, /ally cancel to cancel','black']],room = allywithidx)
                 socketio.emit('message',[[f'Ally request sent to {allywith}']])
-                allygroups.append([[name,ally2idx],[allywith,allywithidx]])
+                globalvars.allygroups.append([[name,ally2idx],[allywith,allywithidx]])
             else:
                 socketio.emit('message',[['There is no player of that name','black']],room=ally2idx)
     else:
         msg[0] = datetime.now().strftime("[%H:%M] ")+msg[0]
-        messages.append(msg)
-        socketio.emit('message', [messages[-1]]) #SIMPLIFY?? may have to change what's emitted by the client
-        open('data/messageinfo.json', 'w').write(jsonpickle.encode(messages))
+        globalvars.messages.append(msg)
+        socketio.emit('message', [globalvars.messages[-1]]) #SIMPLIFY?? may have to change what's emitted by the client
+        open('data/messageinfo.json', 'w').write(jsonpickle.encode(globalvars.messages))
 
 
 @socketio.on('connect')
 def handle_connect():
     # emits everything the client needs and sends a message to everyone that they've joined
-    socketio.emit('item_positions', [i.to_dict() for i in items])
+    socketio.emit('item_positions', [i.to_dict() for i in globalvars.items])
     client_id = session.get('ClientID', 'Guest')
-    if players[client_id].hp > 0:
-        players[client_id].visible = True
-        players[client_id].displayedAnywhere = True
+    if globalvars.players[client_id].hp > 0:
+        globalvars.players[client_id].visible = True
+        globalvars.players[client_id].displayedAnywhere = True
     join_room(client_id)
     socketio.emit('coin_positions',coins)
     socketio.emit('client_id', client_id, room=client_id) # SIMPLIFY the emits
-    socketio.emit('base_grid', grid)
-    playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
+    socketio.emit('base_grid', globalvars.grid)
+    playersInfo = [i.getInfoInString() for i in globalvars.players if i.displayedAnywhere]
     socketio.emit('specificPlayerInfo', [
-                  i.getInfoForSpecificPlayer() for i in players])
+                  i.getInfoForSpecificPlayer() for i in globalvars.players])
     socketio.emit('PlayersInfo', sorted(
         playersInfo, key=lambda x: int(x[2]), reverse=True))
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-    socketio.emit('message', messages[len(messages)-40:], room=client_id)
-    socketio.emit('allies',players[client_id].ally, room=client_id)
-    messages.append(
-        [f'{datetime.now().strftime("[%H:%M] ")}{players[client_id].name} has joined', "black"])
-    socketio.emit('message', [messages[-1]])
+    socketio.emit('new_positions', {"objects": [i.to_dict() for i in globalvars.players]})
+    socketio.emit('message', globalvars.messages[len(globalvars.messages)-40:], room=client_id)
+    socketio.emit('allies',globalvars.players[client_id].ally, room=client_id)
+    globalvars.messages.append(
+        [f'{datetime.now().strftime("[%H:%M] ")}{globalvars.players[client_id].name} has joined', "black"])
+    socketio.emit('message', [globalvars.messages[-1]])
 
 
 @socketio.on('update_position')
 def handle_update_position(data):
     '''Gets the function to process it, just emits stuff'''
-    players[data['id']].move(data['direction'])
-    playersInfo = [i.getInfoInString() for i in players if i.displayedAnywhere]
+    globalvars.players[data['id']].move(data['direction'])
+    playersInfo = [i.getInfoInString() for i in globalvars.players if i.displayedAnywhere]
     socketio.emit('PlayersInfo', sorted(
         playersInfo, key=lambda x: int(x[2]), reverse=True))
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
+    socketio.emit('new_positions', {"objects": [i.to_dict() for i in globalvars.players]})
     socketio.emit('specificPlayerInfo', [
-                  i.getInfoForSpecificPlayer() for i in players])
-    open('data/playerinfo.json', 'w').write(jsonpickle.encode(players)) #again SIMPLIFY
-    open('data/itemsinfo.json', 'w').write(jsonpickle.encode(items))
+                  i.getInfoForSpecificPlayer() for i in globalvars.players])
+    open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players)) #again SIMPLIFY
+    open('data/itemsinfo.json', 'w').write(jsonpickle.encode(globalvars.items))
     if not canrun:
         socketio.emit('redirect', {'url': '/login'})
 
@@ -585,13 +321,13 @@ def handle_upgrade_weapon(data):
     print('test')
     playerid=data[1]
     toupgrade=data[0]
-    if players[playerid].items[toupgrade].rarity!='legendary':
-        upgradecost=upgradeCosts[players[playerid].items[toupgrade].rarity]
-        if upgradecost<=players[playerid].coinCount :
-            players[playerid].coinCount-=upgradecost
-            players[playerid].items[toupgrade].rarity = rarities[rarities.index(players[playerid].items[toupgrade].rarity)+1]
-            socketio.emit('new_positions', {"objects": [i.to_dict() for i in players]})
-            socketio.emit('specificPlayerInfo', [i.getInfoForSpecificPlayer() for i in players])
+    if globalvars.players[playerid].items[toupgrade].rarity!='legendary':
+        upgradecost=globalvars.upgradeCosts[globalvars.players[playerid].items[toupgrade].rarity]
+        if upgradecost<=globalvars.players[playerid].coinCount :
+            globalvars.players[playerid].coinCount-=upgradecost
+            globalvars.players[playerid].items[toupgrade].rarity = globalvars.rarities[globalvars.rarities.index(globalvars.players[playerid].items[toupgrade].rarity)+1]
+            socketio.emit('new_positions', {"objects": [i.to_dict() for i in globalvars.players]})
+            socketio.emit('specificPlayerInfo', [i.getInfoForSpecificPlayer() for i in globalvars.players])
     print(playerid,toupgrade)
 
 if __name__ == '__main__':
