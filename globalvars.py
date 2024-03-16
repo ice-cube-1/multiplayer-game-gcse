@@ -6,3 +6,4 @@ weaponTypes = {"/sword": [8, 1, 0.3], "/spear": [4, 2, 0.25], "/axe": [14, 1, 0.
 weaponMultiplier = [1, 1.25, 1.5, 2, 3]
 allygroups, grid, messages, players, items, coins = [], [], [], [], [], []
 upgradeCosts={'common':20,'uncommon':40,'rare':80,'epic':160,'legendary':''}
+canrun = True

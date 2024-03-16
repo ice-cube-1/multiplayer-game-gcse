@@ -5,148 +5,19 @@ from flask_cors import CORS
 from datetime import datetime, timedelta
 import jsonpickle
 import os
-import threading
 from werkzeug.middleware.proxy_fix import ProxyFix
 import identity
 import identity.web
-from flask_session import Session
 import app_config
 from player import Player
 from item import Item
-#from globalvars import globalvars.gridlx, globalvars.gridly, globalvars.allygroups, globalvars.rarities, globalvars.upgradeCosts
 import globalvars
 import coins
-
-def zombify():
-    '''Checks if there are any globalvars.players that should be offline and if so makes them invisible'''
-    currentTime = datetime.now()
-    with zombifyLock:
-        for i in range(len(globalvars.players)):
-            delta = currentTime - globalvars.players[i].lastMove
-            if delta.total_seconds() > 120 and globalvars.players[i].visible:
-                globalvars.players[i].visible = False
-                globalvars.messages.append(
-                    [f'{datetime.now().strftime("[%H:%M] ")}{globalvars.players[i].name} has gone offline', "black"])
-                socketio.emit('message', [globalvars.messages[-1]])
-        socketio.emit('new_positions', {"objects": [
-                      i.to_dict() for i in globalvars.players]})
-        playersInfo = [i.getInfoInString()
-                       for i in globalvars.players if i.displayedAnywhere]
-        socketio.emit('PlayersInfo', sorted(
-            playersInfo, key=lambda x: int(x[2]), reverse=True))
+from setup import createGrid
+from flasksetup import socketio, auth, app
+import zombify, canrun, reset
 
 
-def createGrid():
-    '''creates a grid with walls at the edge and in random places'''
-    globalvars.grid = [[0 for i in range(globalvars.gridlx)] for j in range(globalvars.gridly)]
-    for i in range(globalvars.gridly):
-        if i == 0 or i == globalvars.gridly-1:
-            globalvars.grid[i] = [1 for i in range(globalvars.gridlx)]
-        else:
-            globalvars.grid[i][-1] = 1
-            globalvars.grid[i][0] = 1
-        for j in range(globalvars.gridlx):
-            if randint(0, 9) < 1:
-                globalvars.grid[i][j] = 1
-
-def weeklyReset():
-    '''all characters lose all stats etc, only thing that stays is color, username'''
-    for i in range(len(globalvars.players)):
-        for j in globalvars.players[i].items:
-            globalvars.items.append(j)
-        storeColor = globalvars.players[i].color
-        storelastmove = globalvars.players[i].lastMove  # SIMPLIFY STORES
-        globalvars.players[i] = Player(globalvars.players[i].name)
-        globalvars.players[i].color = storeColor
-        globalvars.players[i].lastMove = storelastmove
-
-
-def dailyReset():
-    '''grid regeneates, globalvars.items on board lose'''
-    createGrid()
-    olditems = [i for i in globalvars.items]
-    globalvars.items = []
-    for i in olditems:
-        globalvars.items.append(Item(i.rarity, i.type))
-    # should they be shown on the leaderboard
-    if (datetime.now()-globalvars.players[i].lastMove).total_seconds() > 60*60*24:
-        globalvars.players[i].displayedAnywhere = False
-    # SIMPLIFY all of this could go into separate functions
-    socketio.emit('base_grid', globalvars.grid)
-    playersInfo = [i.getInfoInString() for i in globalvars.players if i.displayedAnywhere]
-    socketio.emit('specificPlayerInfo', [
-                  i.getInfoForSpecificPlayer() for i in globalvars.players])
-    socketio.emit('PlayersInfo', sorted(
-        playersInfo, key=lambda x: int(x[2]), reverse=True))
-    socketio.emit('new_positions', {"objects": [i.to_dict() for i in globalvars.players]})
-    globalvars.messages.append(
-        [f'{datetime.now().strftime("[%H:%M] ")}The game has reset overnight', "black"])
-    socketio.emit('message', [globalvars.messages[-1]])
-
-
-def TimeTillRun():
-    '''Time until next reset'''
-    now = datetime.now()
-    scheduled = datetime.combine(
-        now.date(), datetime.strptime("02:00", "%H:%M").time())
-    if now > scheduled:
-        scheduled += timedelta(days=1)
-    return (scheduled-now).total_seconds()
-
-def timeUntilMorning():
-    now = datetime.now()
-    scheduled = datetime.combine(
-        now.date(), datetime.strptime("08:30", "%H:%M").time())
-    if now > scheduled:
-        scheduled += timedelta(days=1)
-    return (scheduled-now).total_seconds()
-
-def checkRunnable():
-    global canrun
-    while True:
-        canrun = True
-        threading.Event().wait(timeUntilMorning())
-        if datetime.today().weekday() < 5:
-            canrun = False
-        threading.Event().wait(3.75*60*60)
-        canrun = True
-        threading.Event.wait(45*60)
-        if datetime.today().weekday() < 5:
-            canrun = False
-        threading.Event.wait(3.25*60*60)
-        canrun = True
-
-def resetCheck():
-    '''waits in a thread until next reset, then possibly does a weekly one before the daily one'''
-    while True:
-        threading.Event().wait(TimeTillRun())
-        if datetime.today().weekday() == 0:
-            weeklyReset()
-        dailyReset()
-
-
-def waitZombify():
-    '''waits between offline checks'''
-    while True:
-        threading.Event().wait(5)
-        zombify()
-
-# initialises constants + web / thread stuff
-app = Flask(__name__, static_url_path='/static')
-app.secret_key = 'notVerySecret'
-socketio = SocketIO(app, async_mode='threading')
-CORS(app)
-app.config.from_object(app_config)
-Session(app)
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
-auth = identity.web.Auth(session=session, authority=app.config.get("AUTHORITY"), client_id=app.config["CLIENT_ID"], client_credential=app.config["CLIENT_SECRET"],)
-thread = threading.Thread(target=resetCheck)
-thread.start()
-zombifyThread = threading.Thread(target=waitZombify)
-zombifyThread.start()
-zombifyLock = threading.Lock()
-offlineThread = threading.Thread(target=checkRunnable)
-offlineThread.start()
 if not os.path.exists('data'): # sets up the files from scratch
     os.makedirs('data')
     createGrid()
@@ -209,7 +80,7 @@ def index():
         open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players))
         client_id = len(globalvars.players)-1
     session['ClientID'] = client_id
-    if canrun:
+    if globalvars.canrun:
         return render_template('index.html')
     else:
         return render_template('login.html')
@@ -313,7 +184,7 @@ def handle_update_position(data):
                   i.getInfoForSpecificPlayer() for i in globalvars.players])
     open('data/playerinfo.json', 'w').write(jsonpickle.encode(globalvars.players)) #again SIMPLIFY
     open('data/itemsinfo.json', 'w').write(jsonpickle.encode(globalvars.items))
-    if not canrun:
+    if not globalvars.canrun:
         socketio.emit('redirect', {'url': '/login'})
 
 @socketio.on('upgrade_weapon')
