@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, session
+from flask import Response, render_template, request, redirect, url_for, session
 from flask_socketio import join_room
 from datetime import datetime
 import identity
@@ -16,7 +16,7 @@ import reset  # UNUSED BUT REQUIRED AS STARTS THREADS
 
 
 @app.route("/login")
-def login():
+def login() -> str:
     return render_template("login.html", version=identity.__version__, **auth.log_in(
         scopes=app_config.SCOPE,
         redirect_uri=url_for("auth_response", _external=True),
@@ -24,7 +24,7 @@ def login():
 
 
 @app.route(app_config.REDIRECT_PATH)
-def auth_response():
+def auth_response() -> Response:
     auth.complete_log_in(request.args)
     session['username'] = auth.get_user().get('name')
     print(auth.get_user().get('name'))
@@ -32,12 +32,12 @@ def auth_response():
 
 
 @app.route("/logout")
-def logout():
+def logout() -> Response:
     return redirect(auth.log_out(url_for("index", _external=True)))
 
 
 @app.route("/")
-def index():
+def index() -> str | Response:
     username = session.get('username', 'Guest')
     if not username or username == 'Guest':
         return redirect(url_for("login"))
@@ -56,13 +56,13 @@ def index():
 
 
 @app.route('/help')
-def help_info():
+def help_info() -> str:
     """just a plain HTML with an href"""
     return render_template('help.html')
 
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect() -> None:
     # emits everything the client needs and sends a message to everyone that they've joined
     socketio.emit('item_positions', [i.to_dict() for i in global_vars.items])
     client_id = session.get('ClientID', 'Guest')
@@ -88,17 +88,17 @@ def handle_connect():
 
 
 @socketio.on('message')
-def handle_message(msg):
+def handle_message(msg: list[str]) -> None:
     handle_socket.message(msg)
 
 
 @socketio.on('update_position')
-def handle_update_position(data):
+def handle_update_position(data: dict[str, str | int]) -> None:
     handle_socket.new_position(data)
 
 
 @socketio.on('upgrade_weapon')
-def handle_upgrade_weapon(data):
+def handle_upgrade_weapon(data: list[int]) -> None:
     handle_socket.weapon_upgrade(data)
 
 

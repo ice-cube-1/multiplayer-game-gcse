@@ -7,7 +7,7 @@ from setup import createGrid
 from item import Item
 
 
-def TimeTillRun():
+def TimeTillRun() -> float:
     """Time until next reset"""
     now = datetime.now()
     scheduled = datetime.combine(
@@ -17,7 +17,7 @@ def TimeTillRun():
     return (scheduled-now).total_seconds()
 
 
-def weeklyReset():
+def weeklyReset() -> None:
     """all characters lose all stats etc., only thing that stays is color, username"""
     for i in range(len(global_vars.players)):
         for j in global_vars.players[i].items:
@@ -29,7 +29,7 @@ def weeklyReset():
         global_vars.players[i].last_move = store_last_move
 
 
-def dailyReset():
+def dailyReset() -> None:
     """grid regenerates, global_vars.items on board lose"""
     createGrid()
     old_items = [i for i in global_vars.items]
@@ -49,7 +49,7 @@ def dailyReset():
     socketio.emit('message', [global_vars.messages[-1]])
 
 
-def resetCheck():
+def resetCheck() -> None:
     """waits in a thread until next reset, then possibly does a weekly one before the daily one"""
     while True:
         threading.Event().wait(TimeTillRun())

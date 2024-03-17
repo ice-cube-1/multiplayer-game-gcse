@@ -8,7 +8,7 @@ from coins import addCoin
 import global_vars
 
 
-def check_player(x, y):
+def check_player(x: int, y: int) -> bool:
     """Checks if a player is in space"""
     for i in global_vars.players:
         if i.x == x and i.y == y and i.visible:
@@ -17,7 +17,7 @@ def check_player(x, y):
 
 
 class Player:
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         # all the variables for it - SIMPLIFY
         self.x = 0
         self.y = 0
@@ -43,7 +43,7 @@ class Player:
         self.ally = [self.name]
         self.coinCount = 0
 
-    def move(self, charin):
+    def move(self, charin: str) -> None:
         """deals with client input"""
         self.last_move = datetime.now()
         if not self.visible:  # come back online
@@ -78,7 +78,7 @@ class Player:
         elif charin == "E":
             self.interact()
 
-    def interact(self):
+    def interact(self) -> None:
         """Picks up an item + edits your stats when you press E. Also drops your item if you have one"""
         for i in range(len(global_vars.items)):
             if global_vars.items[i].x == self.x and global_vars.items[i].y == self.y:
@@ -121,7 +121,7 @@ class Player:
                 socketio.emit('coin_positions', global_vars.coins)
                 print(self.coinCount)
 
-    def attack(self, to_attack):
+    def attack(self, to_attack: int) -> int:
         """deals damage / kill logic from attack"""
         if rollDice(40, 1) + self.proficiency > global_vars.players[to_attack].ac:  # did it actually hit, if so do
             # damage
@@ -161,7 +161,7 @@ class Player:
                 return 1  # add to kill count
         return 0  # did not kill
 
-    def findTarget(self):
+    def findTarget(self) -> int:
         """Attacks the first (presumes there's only one) player in range"""
         '''Does this based on both range in a semicircle and direction'''
         for i in range(len(global_vars.players)):
@@ -179,7 +179,7 @@ class Player:
                     return self.attack(i)
         return 0
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str | int]:
         """only what the client needs - simpler to serialize, more secure + less traffic"""
         weapon_type, weapon_rarity, armour = False, False, False
         for i in self.items:
@@ -200,7 +200,7 @@ class Player:
             'armour': armour
         }
 
-    def getInfoInString(self):
+    def getInfoInString(self) -> tuple[str, str, int]:
         """for the leaderboard"""
         if self.visible:
             status = "online"
@@ -208,7 +208,7 @@ class Player:
             status = "offline"
         return f'{self.name}: {self.hp}/{self.max_hp} - Level {self.proficiency}, {self.kill_count} kills ({status})', self.color, self.kill_count
 
-    def getInfoForSpecificPlayer(self):
+    def getInfoForSpecificPlayer(self) -> list:
         upgrade_costs = ['', '']
         for i in range(len(self.items)):
             upgrade_costs[i] = global_vars.upgradeCosts[self.items[i].rarity]

@@ -3,7 +3,7 @@ from random import randint, choice
 
 
 class Item:
-    def __init__(self, rarity, type):
+    def __init__(self, rarity: str, type: str) -> None:
         """Creates an item in a random place given a rarity and type"""
         self.x = 0
         self.y = 0
@@ -17,7 +17,7 @@ class Item:
         else:
             self.weapon_type = choice(['/sword', '/spear', '/axe', '/bow'])
 
-    def check_item(self):
+    def check_item(self) -> bool:
         """Checks if either an item or wall is in space"""
         if global_vars.grid[self.y][self.x] == 1:
             return False
@@ -26,7 +26,7 @@ class Item:
                 return False
         return True
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, str | int]:
         return {
             'rarity': self.rarity,
             'type': self.type,

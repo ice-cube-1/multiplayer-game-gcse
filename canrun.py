@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import threading
 
 
-def timeUntilMorning():
+def timeUntilMorning() -> float:
     now = datetime.now()
     scheduled = datetime.combine(
         now.date(), datetime.strptime("08:30", "%H:%M").time())
@@ -12,7 +12,7 @@ def timeUntilMorning():
     return (scheduled-now).total_seconds()
 
 
-def checkRunnable():
+def checkRunnable() -> None:
     while True:
         global_vars.can_run = True
         threading.Event().wait(timeUntilMorning())

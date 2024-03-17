@@ -4,7 +4,7 @@ from datetime import datetime
 import utils
 
 
-def message(msg):
+def message(msg: list[str]) -> None:
     """emits received message to everyone"""
     name, message = msg[0].split(': ')
     if message[:6] == '/ally ':
@@ -74,7 +74,7 @@ def message(msg):
         utils.saveFiles()
 
 
-def new_position(data):
+def new_position(data: dict[str, str | int]) -> None:
     """Gets the function to process it, just emits stuff"""
     global_vars.players[data['id']].move(data['direction'])
     players_info = [i.getInfoInString() for i in global_vars.players if i.displayed_anywhere]
@@ -86,7 +86,7 @@ def new_position(data):
         socketio.emit('redirect', {'url': '/login'})
 
 
-def weapon_upgrade(data):
+def weapon_upgrade(data: list[int]) -> None:
     player_id = data[1]
     to_upgrade = data[0]
     if global_vars.players[player_id].items[to_upgrade].rarity != 'legendary':

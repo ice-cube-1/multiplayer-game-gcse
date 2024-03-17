@@ -7,7 +7,7 @@ import jsonpickle
 import coins
 
 
-def startData():
+def startData() -> None:
     if not os.path.exists('data'):  # sets up the files from scratch
         os.makedirs('data')
         createGrid()
@@ -36,7 +36,7 @@ def startData():
     global_vars.coins.append({'x': 1, 'y': 1})
 
 
-def createGrid():
+def createGrid() -> None:
     """creates a grid with walls at the edge and in random places"""
     global_vars.grid = [
         [0 for _ in range(global_vars.grid_x)] for _ in range(global_vars.grid_y)]

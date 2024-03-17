@@ -4,7 +4,7 @@ import threading
 from flasksetup import socketio
 
 
-def zombify():
+def zombify() -> None:
     '''Checks if there are any global_vars.players that should be offline and if so makes them invisible'''
     currentTime = datetime.now()
     with zombifyLock:
@@ -23,7 +23,7 @@ def zombify():
             playersInfo, key=lambda x: int(x[2]), reverse=True))
 
 
-def waitZombify():
+def waitZombify() -> None:
     '''waits between offline checks'''
     while True:
         threading.Event().wait(5)

@@ -3,7 +3,7 @@ from random import randint
 import global_vars
 
 
-def addCoin():
+def addCoin() -> dict[str, int]:
     while True:
         x, y = randint(0, 79), randint(0, 79)
         can_place = True
