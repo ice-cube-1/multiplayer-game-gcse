@@ -1,16 +1,17 @@
 from item import Item
 from random import randint
 from datetime import datetime
-from flasksetup import socketio
+import vars
 import math
 from utils import rollDice
 from coins import addCoin
-import global_vars
+
+CONSTS = vars.consts()
 
 
 def check_player(x: int, y: int) -> bool:
     """Checks if a player is in space"""
-    for i in global_vars.players:
+    for i in vars.players:
         if i.x == x and i.y == y and i.visible:
             return False
     return True
@@ -21,9 +22,9 @@ class Player:
         # all the variables for it - SIMPLIFY
         self.x = 0
         self.y = 0
-        while global_vars.grid[self.y][self.x] != 0:
-            self.x = randint(0, global_vars.grid_x - 1)
-            self.y = randint(0, global_vars.grid_y - 1)
+        while vars.grid[self.y][self.x] != 0:
+            self.x = randint(0, CONSTS.GRID_X - 1)
+            self.y = randint(0, CONSTS.GRID_Y - 1)
         self.name = name
         self.color = f'rgb({randint(0, 255)},{randint(0, 255)},{randint(0, 255)})'
         self.hp = 40
@@ -49,133 +50,133 @@ class Player:
         if not self.visible:  # come back online
             self.visible = True
             self.displayed_anywhere = True
-            global_vars.messages.append(
+            vars.messages.append(
                 [f'{datetime.now().strftime("[%H:%M] ")}{self.name} has joined', "black"])
-            socketio.emit('message', [global_vars.messages[-1]])
+            vars.SOCKETIO.emit('message', [vars.messages[-1]])
         if charin == "W":
-            if global_vars.grid[self.y - 1][self.x] == 0 and check_player(self.x, self.y - 1):
+            if vars.grid[self.y - 1][self.x] == 0 and check_player(self.x, self.y - 1):
                 self.y -= 1
             self.direction = 'W'
         elif charin == "S":
-            if global_vars.grid[self.y + 1][self.x] == 0 and check_player(self.x, self.y + 1):
+            if vars.grid[self.y + 1][self.x] == 0 and check_player(self.x, self.y + 1):
                 self.y += 1
             self.direction = 'S'
         elif charin == "A":
-            if global_vars.grid[self.y][self.x - 1] == 0 and check_player(self.x - 1, self.y):
+            if vars.grid[self.y][self.x - 1] == 0 and check_player(self.x - 1, self.y):
                 self.x -= 1
             self.direction = 'A'
         elif charin == "D":
-            if global_vars.grid[self.y][self.x + 1] == 0 and check_player(self.x + 1, self.y):
+            if vars.grid[self.y][self.x + 1] == 0 and check_player(self.x + 1, self.y):
                 self.x += 1
             self.direction = 'D'
         elif charin == "Space":
             # which actually returns the kill count from the attack function if called
             self.kill_count += self.findTarget()
-            players_info = [i.getInfoInString() for i in global_vars.players if i.displayed_anywhere]
+            players_info = [i.getInfoInString() for i in vars.players if i.displayed_anywhere]
             self.proficiency = math.floor(math.log(self.kill_count + 1, 2))
             self.max_hp = 40 + self.kill_count
-            socketio.emit('PlayersInfo', sorted(players_info, key=lambda x: int(x[2]), reverse=True))
+            vars.SOCKETIO.emit('PlayersInfo', sorted(players_info, key=lambda x: int(x[2]), reverse=True))
         elif charin == "E":
             self.interact()
 
     def interact(self) -> None:
         """Picks up an item + edits your stats when you press E. Also drops your item if you have one"""
-        for i in range(len(global_vars.items)):
-            if global_vars.items[i].x == self.x and global_vars.items[i].y == self.y:
+        for i in range(len(vars.items)):
+            if vars.items[i].x == self.x and vars.items[i].y == self.y:
                 # comparatively simple as you just use it
-                if global_vars.items[i].type == 'healing':
-                    self.hp += global_vars.healing_stats[global_vars.rarities.index(
-                        global_vars.items[i].rarity)]
+                if vars.items[i].type == 'healing':
+                    self.hp += CONSTS.HEALING_STATS[CONSTS.RARITIES.index(
+                        vars.items[i].rarity)]
                     if self.hp > self.max_hp:
                         self.hp = self.max_hp
-                    global_vars.items.append(
-                        Item(global_vars.items[i].rarity, "healing"))
-                    global_vars.items.pop(i)
+                    vars.items.append(
+                        Item(vars.items[i].rarity, "healing"))
+                    vars.items.pop(i)
                 else:
                     had_type = False
                     for j in range(len(self.items)):
-                        # swaps all stats of the old and new global_vars.items
-                        if self.items[j].type == global_vars.items[i].type:
-                            self.items[j].weapon_type, global_vars.items[i].weapon_type = global_vars.items[i].weapon_type, self.items[j].weapon_type
-                            self.items[j].type, global_vars.items[i].type = global_vars.items[i].type, self.items[j].type
-                            self.items[j].rarity, global_vars.items[i].rarity = global_vars.items[i].rarity, self.items[j].rarity
+                        # swaps all stats of the old and new vars.items
+                        if self.items[j].type == vars.items[i].type:
+                            self.items[j].weapon_type, vars.items[i].weapon_type = vars.items[i].weapon_type, self.items[j].weapon_type
+                            self.items[j].type, vars.items[i].type = vars.items[i].type, self.items[j].type
+                            self.items[j].rarity, vars.items[i].rarity = vars.items[i].rarity, self.items[j].rarity
                             had_type = True
-                    if not had_type:  # otherwise adds it to their list of global_vars.items
-                        self.items.append(global_vars.items[i])
-                        global_vars.items.pop(i)
-                    for picked_up in self.items:  # modifies the stats - it does this to both global_vars.items,
+                    if not had_type:  # otherwise adds it to their list of vars.items
+                        self.items.append(vars.items[i])
+                        vars.items.pop(i)
+                    for picked_up in self.items:  # modifies the stats - it does this to both vars.items,
                         # no good reason as to why, but it doesn't take much processing
                         if picked_up.type == 'armour':
-                            self.ac = global_vars.armour_stats[global_vars.rarities.index(picked_up.rarity)]
+                            self.ac = CONSTS.ARMOUR_STATS[CONSTS.RARITIES.index(picked_up.rarity)]
                         else:
-                            self.damage = global_vars.weapon_types[picked_up.weapon_type][0]
-                            self.range = global_vars.weapon_types[picked_up.weapon_type][1]
-                            self.attackSpeed = global_vars.weapon_types[picked_up.weapon_type][2]
-                            self.damageMultiplier = global_vars.weapon_multiplier[global_vars.rarities.index(picked_up.rarity)]
-                socketio.emit('item_positions', [i.to_dict() for i in global_vars.items])
-        for i in range(len(global_vars.coins)):
-            if global_vars.coins[i]['x'] == self.x and global_vars.coins[i]['y'] == self.y:
+                            self.damage = CONSTS.WEAPON_TYPES[picked_up.weapon_type][0]
+                            self.range = CONSTS.WEAPON_TYPES[picked_up.weapon_type][1]
+                            self.attackSpeed = CONSTS.WEAPON_TYPES[picked_up.weapon_type][2]
+                            self.damageMultiplier = CONSTS.WEAPON_MULTIPLIER[CONSTS.RARITIES.index(picked_up.rarity)]
+                vars.SOCKETIO.emit('item_positions', [i.to_dict() for i in vars.items])
+        for i in range(len(vars.coins)):
+            if vars.coins[i]['x'] == self.x and vars.coins[i]['y'] == self.y:
                 self.coinCount += 1
-                global_vars.coins.pop(i)
-                global_vars.coins.insert(i, addCoin())
-                socketio.emit('coin_positions', global_vars.coins)
+                vars.coins.pop(i)
+                vars.coins.insert(i, addCoin())
+                vars.SOCKETIO.emit('coin_positions', vars.coins)
                 print(self.coinCount)
 
     def attack(self, to_attack: int) -> int:
         """deals damage / kill logic from attack"""
-        if rollDice(40, 1) + self.proficiency > global_vars.players[to_attack].ac:  # did it actually hit, if so do
+        if rollDice(40, 1) + self.proficiency > vars.players[to_attack].ac:  # did it actually hit, if so do
             # damage
-            global_vars.players[to_attack].hp -= rollDice(
+            vars.players[to_attack].hp -= rollDice(
                 self.damage, self.damageMultiplier) + self.proficiency
-            if global_vars.players[to_attack].hp <= 0:  # if is dead
-                global_vars.players[to_attack].hp = 0
+            if vars.players[to_attack].hp <= 0:  # if is dead
+                vars.players[to_attack].hp = 0
                 # drops loot (SIMPLIFY)
-                for i in global_vars.players[to_attack].global_vars.items:
-                    i.x, i.y = global_vars.players[to_attack].x, global_vars.players[to_attack].y
+                for i in vars.players[to_attack].vars.items:
+                    i.x, i.y = vars.players[to_attack].x, vars.players[to_attack].y
                     if i.type == 'armour':
                         while not i.check_item():
                             i.x += 1
                     if i.type == 'weapon':
                         while not i.check_item():
                             i.y -= 1
-                    global_vars.items.append(i)
-                socketio.emit('item_positions', [i.to_dict() for i in global_vars.items])
-                socketio.emit('new_positions', {"objects": [i.to_dict() for i in global_vars.players]})
+                    vars.items.append(i)
+                vars.SOCKETIO.emit('item_positions', [i.to_dict() for i in vars.items])
+                vars.SOCKETIO.emit('new_positions', {"objects": [i.to_dict() for i in vars.players]})
                 # stores everything that needs to be kept during respawn (SIMPLIFY)
-                store_color = global_vars.players[to_attack].color
-                store_max_hp = global_vars.players[to_attack].max_hp - 1
-                store_kills = global_vars.players[to_attack].kill_count
-                store_proficiency = global_vars.players[to_attack].proficiency
-                global_vars.players[to_attack] = Player(global_vars.players[to_attack].name)
-                global_vars.players[to_attack].color = store_color
-                global_vars.players[to_attack].max_hp = store_max_hp
-                global_vars.players[to_attack].kill_count = store_kills
-                global_vars.players[to_attack].proficiency = store_proficiency
-                global_vars.players[to_attack].hp = store_max_hp
+                store_color = vars.players[to_attack].color
+                store_max_hp = vars.players[to_attack].max_hp - 1
+                store_kills = vars.players[to_attack].kill_count
+                store_proficiency = vars.players[to_attack].proficiency
+                vars.players[to_attack] = Player(vars.players[to_attack].name)
+                vars.players[to_attack].color = store_color
+                vars.players[to_attack].max_hp = store_max_hp
+                vars.players[to_attack].kill_count = store_kills
+                vars.players[to_attack].proficiency = store_proficiency
+                vars.players[to_attack].hp = store_max_hp
                 # AT LEAST SOME SHOULD BE MODULARIZED
-                global_vars.messages.append(
+                vars.messages.append(
                     [
-                        f'{datetime.now().strftime("[%H:%M] ")}{global_vars.players[to_attack].name} was killed by {self.name}',
+                        f'{datetime.now().strftime("[%H:%M] ")}{vars.players[to_attack].name} was killed by {self.name}',
                         "black"])
-                socketio.emit('message', [global_vars.messages[-1]])
+                vars.SOCKETIO.emit('message', [vars.messages[-1]])
                 return 1  # add to kill count
         return 0  # did not kill
 
     def findTarget(self) -> int:
         """Attacks the first (presumes there's only one) player in range"""
         '''Does this based on both range in a semicircle and direction'''
-        for i in range(len(global_vars.players)):
-            if (self.x - global_vars.players[i].x) ** 2 + (
-                    self.y - global_vars.players[i].y) ** 2 <= self.range ** 2 and global_vars.players[
-                i].visible and global_vars.players[i].name not in self.ally and self.name not in \
-                    global_vars.players[i].ally:
-                if self.direction == 'W' and self.y - global_vars.players[i].y > 0:
+        for i in range(len(vars.players)):
+            if (self.x - vars.players[i].x) ** 2 + (
+                    self.y - vars.players[i].y) ** 2 <= self.range ** 2 and vars.players[
+                i].visible and vars.players[i].name not in self.ally and self.name not in \
+                    vars.players[i].ally:
+                if self.direction == 'W' and self.y - vars.players[i].y > 0:
                     return self.attack(i)
-                if self.direction == 'S' and global_vars.players[i].y - self.y > 0:
+                if self.direction == 'S' and vars.players[i].y - self.y > 0:
                     return self.attack(i)
-                if self.direction == 'A' and self.x - global_vars.players[i].x > 0:
+                if self.direction == 'A' and self.x - vars.players[i].x > 0:
                     return self.attack(i)
-                if self.direction == 'D' and global_vars.players[i].x - self.x > 0:
+                if self.direction == 'D' and vars.players[i].x - self.x > 0:
                     return self.attack(i)
         return 0
 
@@ -211,7 +212,7 @@ class Player:
     def getInfoForSpecificPlayer(self) -> list:
         upgrade_costs = ['', '']
         for i in range(len(self.items)):
-            upgrade_costs[i] = global_vars.upgradeCosts[self.items[i].rarity]
+            upgrade_costs[i] = CONSTS.UPGRADE_COSTS[self.items[i].rarity]
         '''more detailed info about player, formatted by client'''
         return [
             f'{self.name}:\nLevel: {self.proficiency} ({self.kill_count} kills)\nHP: {self.hp}/{self.max_hp}\nArmour class: {self.ac}\nCoins: {self.coinCount}\nUpgrade Cost: {upgrade_costs[0]}',

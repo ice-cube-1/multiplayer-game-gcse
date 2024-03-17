@@ -1,6 +1,7 @@
-import global_vars
+import vars
 from random import randint, choice
 
+CONSTS  = vars.consts()
 
 class Item:
     def __init__(self, rarity: str, type: str) -> None:
@@ -8,8 +9,8 @@ class Item:
         self.x = 0
         self.y = 0
         while not self.check_item():
-            self.x = randint(0, global_vars.grid_x - 1)
-            self.y = randint(0, global_vars.grid_y - 1)
+            self.x = randint(0, CONSTS.GRID_X - 1)
+            self.y = randint(0, CONSTS.GRID_Y - 1)
         self.rarity = rarity
         self.type = type
         if self.type != 'weapon':
@@ -19,9 +20,9 @@ class Item:
 
     def check_item(self) -> bool:
         """Checks if either an item or wall is in space"""
-        if global_vars.grid[self.y][self.x] == 1:
+        if vars.grid[self.y][self.x] == 1:
             return False
-        for i in global_vars.items:
+        for i in vars.items:
             if i.x == self.x and i.y == self.y:
                 return False
         return True
