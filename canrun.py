@@ -12,20 +12,20 @@ def timeUntilMorning() -> float:
     return (scheduled-now).total_seconds()
 
 
-def checkRunnable() -> None:
+def checkRunnable(global_vars: vars.GLOBAL) -> None:
     while True:
-        vars.can_run = True
+        global_vars.can_run = True
         threading.Event().wait(timeUntilMorning())
         if datetime.today().weekday() < 5:
-            vars.can_run = False
+            global_vars.can_run = False
         threading.Event().wait(3.75*60*60)
-        vars.can_run = True
+        global_vars.can_run = True
         threading.Event.wait(45*60)
         if datetime.today().weekday() < 5:
-            vars.can_run = False
+            global_vars.can_run = False
         threading.Event.wait(3.25*60*60)
-        vars.can_run = True
+        global_vars.can_run = True
 
-
-offlineThread = threading.Thread(target=checkRunnable)
-offlineThread.start()
+def start(global_vars: vars.GLOBAL) -> None:
+    offlineThread = threading.Thread(target=checkRunnable, args=(global_vars,))
+    offlineThread.start()

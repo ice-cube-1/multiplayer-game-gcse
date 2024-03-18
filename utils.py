@@ -8,8 +8,8 @@ def rollDice(sides: int, number: float) -> int:
     return sum([randint(1, sides) for i in range(int(number*4))])//4
 
 
-def saveFiles() -> None:
-    open('data/items_info.json', 'w').write(jsonpickle.encode(vars.items))
-    open('data/grid.json','w').write(jsonpickle.encode(vars.grid))
-    open('data/message_info.json', 'w').write(jsonpickle.encode(vars.messages))
-    open('data/player_info.json', 'w').write(jsonpickle.encode(vars.players))
+def saveFiles(global_vars: vars.GLOBAL) -> None:
+    open('data/items_info.json', 'w').write(jsonpickle.encode(global_vars.items))
+    open('data/grid.json','w').write(jsonpickle.encode(global_vars.grid))
+    open('data/message_info.json', 'w').write(jsonpickle.encode(global_vars.messages))
+    open('data/player_info.json', 'w').write(jsonpickle.encode(global_vars.players))
