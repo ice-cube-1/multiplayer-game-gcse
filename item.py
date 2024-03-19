@@ -26,6 +26,7 @@ class Item:
         return True
 
     def to_dict(self) -> dict[str, str | int]:
+        """returns the item's rarity, type and position"""
         return {
             'rarity': self.rarity,
             'type': self.type,

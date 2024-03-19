@@ -3,6 +3,7 @@ import vars
 
 
 def addCoin(global_vars: vars.GLOBAL) -> dict[str, int]:
+    """creates a coin in an unnocupied space, returns the x and y"""
     while True:
         x, y = randint(0, 79), randint(0, 79)
         can_place = True

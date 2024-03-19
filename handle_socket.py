@@ -4,7 +4,9 @@ import utils
 
 
 def message(global_vars: vars.GLOBAL, msg: list[str]) -> None:
-    """emits received message to everyone"""
+    """processes ally requests by sending out a confirmation, and then adding when confirmed / deleting the option if removed
+    also can remove allies without confirmation
+    if message does not start with /ally will just output to everyone"""
     name, message = msg[0].split(': ')
     if message[:6] == '/ally ':
         ally_with = message[6:]
@@ -74,7 +76,8 @@ def message(global_vars: vars.GLOBAL, msg: list[str]) -> None:
 
 
 def new_position(global_vars: vars.GLOBAL, data: dict[str, str | int]) -> None:
-    """Gets the function to process it, just emits stuff"""
+    """handled properly in the player class, but 'moves' the correct player and emits the results to everyone - 
+    also will redirect back to login page if game should have gone offline since last connect"""
     global_vars.players[data['id']].move(global_vars, data['direction'])
     players_info = [i.getInfoInString() for i in global_vars.players if i.displayed_anywhere]
     global_vars.SOCKETIO.emit('PlayersInfo', sorted(players_info, key=lambda x: int(x[2]), reverse=True))
@@ -86,6 +89,7 @@ def new_position(global_vars: vars.GLOBAL, data: dict[str, str | int]) -> None:
 
 
 def weapon_upgrade(global_vars: vars.GLOBAL, data: list[int]) -> None:
+    """if can upgreade weapon (have enough coins and not already legendary) does so and emits the result"""
     player_id = data[1]
     to_upgrade = data[0]
     if global_vars.players[player_id].items[to_upgrade].rarity != 'legendary':

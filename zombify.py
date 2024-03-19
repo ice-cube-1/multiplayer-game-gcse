@@ -4,7 +4,7 @@ import vars
 
 
 def zombify(global_vars: vars.GLOBAL, zombify_lock) -> None:
-    '''Checks if there are any global_vars.players that should be offline and if so makes them invisible'''
+    """Checks if there are any players that should be offline and if so makes them invisible"""
     currentTime = datetime.now()
     with zombify_lock:
         for i in range(len(global_vars.players)):
@@ -13,7 +13,8 @@ def zombify(global_vars: vars.GLOBAL, zombify_lock) -> None:
                 global_vars.players[i].visible = False
                 global_vars.messages.append(
                     [f'{datetime.now().strftime("[%H:%M] ")}{global_vars.players[i].name} has gone offline', "black"])
-                global_vars.SOCKETIO.emit('message', [global_vars.messages[-1]])
+                global_vars.SOCKETIO.emit(
+                    'message', [global_vars.messages[-1]])
         global_vars.SOCKETIO.emit('new_positions', {"objects": [
             i.to_dict() for i in global_vars.players]})
         playersInfo = [i.getInfoInString()
@@ -23,13 +24,15 @@ def zombify(global_vars: vars.GLOBAL, zombify_lock) -> None:
 
 
 def waitZombify(global_vars: vars.GLOBAL, zombify_lock) -> None:
-    '''waits between offline checks'''
+    """waits between offline checks"""
     while True:
         threading.Event().wait(5)
         zombify(global_vars, zombify_lock)
 
 
 def start(global_vars: vars.GLOBAL):
+    """initialises zombie thread and the lock"""
     zombifyLock = threading.Lock()
-    zombifyThread = threading.Thread(target=waitZombify, args=(global_vars, zombifyLock))
+    zombifyThread = threading.Thread(
+        target=waitZombify, args=(global_vars, zombifyLock))
     zombifyThread.start()

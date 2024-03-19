@@ -8,22 +8,28 @@ import coins
 
 
 def start(global_vars: vars.GLOBAL) -> None:
-    if not os.path.exists('data'):  # sets up the files from scratch
+    """if directory 'data' exists then loads the files, otherwise creates new map / items and saves them"""
+    if not os.path.exists('data'):
         os.makedirs('data')
         createGrid(global_vars)
         to_add = ['healing', 'armour', 'weapon']
         for i in range(16):
-            [global_vars.items.append(Item(global_vars, "common", i)) for i in to_add]
+            [global_vars.items.append(
+                Item(global_vars, "common", i)) for i in to_add]
             if i % 2 == 0:
-                [global_vars.items.append(Item(global_vars, "uncommon", i)) for i in to_add]
+                [global_vars.items.append(
+                    Item(global_vars, "uncommon", i)) for i in to_add]
             if i % 4 == 0:
-                [global_vars.items.append(Item(global_vars, "rare", i)) for i in to_add]
+                [global_vars.items.append(
+                    Item(global_vars, "rare", i)) for i in to_add]
             if i % 8 == 0:
-                [global_vars.items.append(Item(global_vars, "epic", i)) for i in to_add]
+                [global_vars.items.append(
+                    Item(global_vars, "epic", i)) for i in to_add]
             if i % 16 == 0:
-                [global_vars.items.append(Item(global_vars, "legendary", i)) for i in to_add]
+                [global_vars.items.append(
+                    Item(global_vars, "legendary", i)) for i in to_add]
         utils.saveFiles(global_vars)
-    else:  # just opens the files
+    else:
         with open('data/grid.json', 'r') as file:
             global_vars.grid = jsonpickle.decode(file.read())
         with open('data/player_info.json', 'r') as file:
