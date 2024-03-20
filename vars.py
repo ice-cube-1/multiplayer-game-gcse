@@ -5,6 +5,7 @@ import app_config
 from flask_session import Session
 from flask_socketio import SocketIO
 import identity.web
+import threading
 
 
 GRID_X, GRID_Y = 80, 80
@@ -33,3 +34,4 @@ class GLOBAL:
         self.APP.wsgi_app = ProxyFix(self.APP.wsgi_app, x_proto=1, x_host=1)
         self.AUTH = identity.web.Auth(session=session, authority=self.APP.config.get(
             "AUTHORITY"), client_id=self.APP.config["CLIENT_ID"], client_credential=self.APP.config["CLIENT_SECRET"],)
+        self.globals_lock = threading.Lock()

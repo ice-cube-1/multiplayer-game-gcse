@@ -19,17 +19,17 @@ def checkRunnable(global_vars: vars.GLOBAL) -> None:
      - 13:00 - 16.15\n
      only on weekdays"""
     while True:
-        global_vars.can_run = True
+        with global_vars.globals_lock: global_vars.can_run = True
         threading.Event().wait(timeUntilMorning())
         if datetime.today().weekday() < 5:
-            global_vars.can_run = False
+            with global_vars.globals_lock: global_vars.can_run = False
         threading.Event().wait(3.75*60*60)
-        global_vars.can_run = True
+        with global_vars.globals_lock: global_vars.can_run = True
         threading.Event.wait(45*60)
         if datetime.today().weekday() < 5:
-            global_vars.can_run = False
+            with global_vars.globals_lock: global_vars.can_run = False
         threading.Event.wait(3.25*60*60)
-        global_vars.can_run = True
+        with global_vars.globals_lock: global_vars.can_run = True
 
 def start(global_vars: vars.GLOBAL) -> None:
     """initializes the blocking at certain times of day thread"""

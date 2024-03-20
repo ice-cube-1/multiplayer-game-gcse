@@ -33,7 +33,7 @@ def login() -> str:
 @global_vars.APP.route(app_config.REDIRECT_PATH)
 def auth_response() -> Response:
     """gets user's name from their microsoft account and uses this as their name from here onwards"""
-    global_vars.AUTH.complete_log_in(request.args)
+    with global_vars.globals_lock: global_vars.AUTH.complete_log_in(request.args)
     session['username'] = global_vars.AUTH.get_user().get('name')
     print(global_vars.AUTH.get_user().get('name'))
     return redirect(url_for("index"))
@@ -58,7 +58,7 @@ def index() -> str | Response:
         if username == global_vars.players[i].name:
             client_id = i
     if client_id == -1:
-        global_vars.players.append(Player(global_vars, username))
+        with global_vars.globals_lock: global_vars.players.append(Player(global_vars, username))
     session['ClientID'] = client_id
     utils.saveFiles(global_vars)
     if global_vars.can_run:
@@ -81,8 +81,9 @@ def handle_connect() -> None:
         'item_positions', [i.to_dict() for i in global_vars.items])
     client_id = session.get('ClientID', 'Guest')
     if global_vars.players[client_id].hp > 0:
-        global_vars.players[client_id].visible = True
-        global_vars.players[client_id].displayed_anywhere = True
+        with global_vars.globals_lock:
+            global_vars.players[client_id].visible = True
+            global_vars.players[client_id].displayed_anywhere = True
     join_room(client_id)
     global_vars.SOCKETIO.emit('coin_positions', global_vars.coins)
     global_vars.SOCKETIO.emit('client_id', client_id,

@@ -48,8 +48,9 @@ class Player:
         if not self.visible:  # come back online
             self.visible = True
             self.displayed_anywhere = True
-            global_vars.messages.append(
-                [f'{datetime.now().strftime("[%H:%M] ")}{self.name} has joined', "black"])
+            with global_vars.globals_lock:
+                global_vars.messages.append(
+                    [f'{datetime.now().strftime("[%H:%M] ")}{self.name} has joined', "black"])
             global_vars.SOCKETIO.emit('message', [global_vars.messages[-1]])
         if charin == "W":
             if global_vars.grid[self.y - 1][self.x] == 0 and check_player(global_vars, self.x, self.y - 1):
@@ -89,21 +90,25 @@ class Player:
                         global_vars.items[i].rarity)]
                     if self.hp > self.max_hp:
                         self.hp = self.max_hp
-                    global_vars.items.append(
-                        Item(global_vars, global_vars.items[i].rarity, "healing"))
-                    global_vars.items.pop(i)
+                    with global_vars.globals_lock:
+                        global_vars.items.append(
+                            Item(global_vars, global_vars.items[i].rarity, "healing"))
+                        global_vars.items.pop(i)
                 else:
                     had_type = False
                     for j in range(len(self.items)):
                         # swaps all stats of the old and new global_vars.items
                         if self.items[j].type == global_vars.items[i].type:
-                            self.items[j].weapon_type, global_vars.items[i].weapon_type = global_vars.items[i].weapon_type, self.items[j].weapon_type
-                            self.items[j].type, global_vars.items[i].type = global_vars.items[i].type, self.items[j].type
-                            self.items[j].rarity, global_vars.items[i].rarity = global_vars.items[i].rarity, self.items[j].rarity
+                            with global_vars.globals_lock:
+                                self.items[j].weapon_type, global_vars.items[
+                                    i].weapon_type = global_vars.items[i].weapon_type, self.items[j].weapon_type
+                                self.items[j].type, global_vars.items[i].type = global_vars.items[i].type, self.items[j].type
+                                self.items[j].rarity, global_vars.items[i].rarity = global_vars.items[i].rarity, self.items[j].rarity
                             had_type = True
                     if not had_type:  # otherwise adds it to their list of global_vars.items
                         self.items.append(global_vars.items[i])
-                        global_vars.items.pop(i)
+                        with global_vars.globals_lock:
+                            global_vars.items.pop(i)
                     for picked_up in self.items:  # modifies the stats - it does this to both global_vars.items,
                         # no good reason as to why, but it doesn't take much processing
                         if picked_up.type == 'armour':
@@ -120,20 +125,19 @@ class Player:
         for i in range(len(global_vars.coins)):
             if global_vars.coins[i]['x'] == self.x and global_vars.coins[i]['y'] == self.y:
                 self.coinCount += 1
-                global_vars.coins.pop(i)
-                global_vars.coins.insert(i, addCoin(global_vars))
+                with global_vars.globals_lock:
+                    global_vars.coins[i] = addCoin(global_vars)
                 global_vars.SOCKETIO.emit('coin_positions', global_vars.coins)
                 print(self.coinCount)
 
     def attack(self, global_vars: vars.GLOBAL, to_attack: int) -> int:
         """deals damage / kill logic - returns the kill count to add (1 if succesful kill)"""
         if rollDice(40, 1) + self.proficiency > global_vars.players[to_attack].ac:
-            # damage
-            global_vars.players[to_attack].hp -= rollDice(
-                self.damage, self.damageMultiplier) + self.proficiency
+            with global_vars.globals_lock:
+                global_vars.players[to_attack].hp -= rollDice(
+                    self.damage, self.damageMultiplier) + self.proficiency
             if global_vars.players[to_attack].hp <= 0:  # if is dead
                 global_vars.players[to_attack].hp = 0
-                # drops loot (SIMPLIFY)
                 for i in global_vars.players[to_attack].global_vars.items:
                     i.x, i.y = global_vars.players[to_attack].x, global_vars.players[to_attack].y
                     if i.type == 'armour':
@@ -142,7 +146,8 @@ class Player:
                     if i.type == 'weapon':
                         while not i.check_item():
                             i.y -= 1
-                    global_vars.items.append(i)
+                    with global_vars.globals_lock:
+                        global_vars.items.append(i)
                 global_vars.SOCKETIO.emit(
                     'item_positions', [i.to_dict() for i in global_vars.items])
                 global_vars.SOCKETIO.emit(
@@ -151,17 +156,18 @@ class Player:
                 store_max_hp = global_vars.players[to_attack].max_hp - 1
                 store_kills = global_vars.players[to_attack].kill_count
                 store_proficiency = global_vars.players[to_attack].proficiency
-                global_vars.players[to_attack] = Player(
-                    global_vars, global_vars.players[to_attack].name)
-                global_vars.players[to_attack].color = store_color
-                global_vars.players[to_attack].max_hp = store_max_hp
-                global_vars.players[to_attack].kill_count = store_kills
-                global_vars.players[to_attack].proficiency = store_proficiency
-                global_vars.players[to_attack].hp = store_max_hp
-                global_vars.messages.append(
-                    [
-                        f'{datetime.now().strftime("[%H:%M] ")}{global_vars.players[to_attack].name} was killed by {self.name}',
-                        "black"])
+                with global_vars.globals_lock:
+                    global_vars.players[to_attack] = Player(
+                        global_vars, global_vars.players[to_attack].name)
+                    global_vars.players[to_attack].color = store_color
+                    global_vars.players[to_attack].max_hp = store_max_hp
+                    global_vars.players[to_attack].kill_count = store_kills
+                    global_vars.players[to_attack].proficiency = store_proficiency
+                    global_vars.players[to_attack].hp = store_max_hp
+                    global_vars.messages.append(
+                        [
+                            f'{datetime.now().strftime("[%H:%M] ")}{global_vars.players[to_attack].name} was killed by {self.name}',
+                            "black"])
                 global_vars.SOCKETIO.emit(
                     'message', [global_vars.messages[-1]])
                 return 1
