@@ -18,6 +18,7 @@ var ul = document.getElementById('messages');
 var messageCount = 0;
 var allies = []
 var coins = []
+var preloaded = {}
 
 document.getElementById('Upgrade1').onclick = function () { // sends the messages
     console.log(0,'help test')
@@ -47,15 +48,16 @@ socket.on('specificPlayerInfo', function (data) {
         }
     }
     for (let i = 0; i < info[2].length; i++) { // adds images of equipped items
-        var img = new Image();
-        img.src = `static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png`;
-        info_ctx.drawImage(img, (i * 200) + 10, 700, 60, 60)
+        if (!(`static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png` in preloaded)) {
+            preloaded[`static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png`] = new Image()
+            preloaded[`static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png`].src = `static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png`
+        }
+        info_ctx.drawImage(preloaded[`static/items-images/${info[2][i]['type']}${info[2][i]['weapon_type']}/${info[2][i]['rarity']}.png`], (i * 200) + 10, 700, 60, 60)
     }
 });
 var inputFocused = false;
 
 function setInputFocus(isFocused) {
-    // is the textbox in focus
     inputFocused = isFocused;
 }
 
@@ -142,13 +144,17 @@ socket.on('new_positions', function (data) {
             var y = i * scale;
             ctx.fillStyle = gridToRender[i][j];
             if (gridToRender[i][j] != 'black') {
-                var img = new Image();
-                img.src = 'static/items-images/other/floor.png'
-                ctx.drawImage(img, x, y, scale, scale);
+                if (!('static/items-images/other/floor.png' in preloaded)) {
+                    preloaded['static/items-images/other/floor.png'] = new Image()
+                    preloaded['static/items-images/other/floor.png'].src = 'static/items-images/other/floor.png'  
+                }              
+                ctx.drawImage(preloaded['static/items-images/other/floor.png'], x, y, scale, scale);
             } else {
-                var img = new Image();
-                img.src = 'static/items-images/other/bricks.png'
-                ctx.drawImage(img, x, y, scale, scale);      
+                if (!('static/items-images/other/bricks.png' in preloaded)) {
+                    preloaded['static/items-images/other/bricks.png'] = new Image()
+                    preloaded['static/items-images/other/bricks.png'].src = 'static/items-images/other/bricks.png'  
+                }              
+                ctx.drawImage(preloaded['static/items-images/other/bricks.png'], x, y, scale, scale); 
             }
             if (gridToRender[i][j] != 'black' && gridToRender[i][j] != 'white'){
                 ctx.fillRect(x+(0.2*scale), y+(0.2*scale), scale*0.4, scale*0.6);
@@ -157,40 +163,54 @@ socket.on('new_positions', function (data) {
     }
     for (let i = 0; i < player_pos.length; i++) { // puts text on characters displaying HP
         if ((0 <= player_pos[i]['x'] - screen_x_offset && player_pos[i]['x'] - screen_x_offset < screensize[0]) && (0 <= player_pos[i]['y'] - screen_y_offset && player_pos[i]['y'] - screen_y_offset < screensize[1]) && player_pos[i]['visible'] == true) {
-            var img = new Image();
-            img.src = `static/items-images/other/character.png`;
-            ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset) * scale, (player_pos[i]['y'] - screen_y_offset) * scale, scale*(13/18), scale);  
+            if (!(`static/items-images/other/character.png` in preloaded)) {
+                preloaded[`static/items-images/other/character.png`] = new Image()
+                preloaded[`static/items-images/other/character.png`].src = `static/items-images/other/character.png`  
+            }              
+            ctx.drawImage(preloaded[`static/items-images/other/character.png`], (player_pos[i]['x'] - screen_x_offset) * scale, (player_pos[i]['y'] - screen_y_offset) * scale, scale*(13/18), scale);  
             if (player_pos[i]['armour'] != false) {
-                var img = new Image();
-                img.src = `static/items-images/armour/${player_pos[i]['armour']}.png`
-                ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset +(1/18)) * scale, (player_pos[i]['y'] - screen_y_offset-(3/18)) * scale,scale*(15/18),scale*(15/18))
+                if (!(`static/items-images/armour/${player_pos[i]['armour']}.png` in preloaded)) {
+                    preloaded[`static/items-images/armour/${player_pos[i]['armour']}.png`] = new Image()
+                    preloaded[`static/items-images/armour/${player_pos[i]['armour']}.png`].src =`static/items-images/armour/${player_pos[i]['armour']}.png`  
+                }  
+                ctx.drawImage(preloaded[`static/items-images/armour/${player_pos[i]['armour']}.png`], (player_pos[i]['x'] - screen_x_offset +(1/18)) * scale, (player_pos[i]['y'] - screen_y_offset-(3/18)) * scale,scale*(15/18),scale*(15/18))
             }
             if (player_pos[i]['weapon'] != false) {
-                var img = new Image();
-                img.src = `static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png`;
-                ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset +(11/18)) * scale, (player_pos[i]['y'] - screen_y_offset+(3/18)) * scale,scale*(10/18),scale*(10/18))
+                if (!(`static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png` in preloaded)) {
+                    preloaded[`static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png`] = new Image()
+                    preloaded[`static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png`].src = `static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png`  
+                }              
+                ctx.drawImage(preloaded[`static/items-images/weapon${player_pos[i]['weapon']}/${player_pos[i]['weapon_rarity']}.png`], (player_pos[i]['x'] - screen_x_offset +(11/18)) * scale, (player_pos[i]['y'] - screen_y_offset+(3/18)) * scale,scale*(10/18),scale*(10/18))
             }
             ctx.fillStyle = 'black';
             ctx.fillText(player_pos[i]['hp'], (player_pos[i]['x'] - screen_x_offset + 0.85) * scale, (player_pos[i]['y'] - screen_y_offset) * scale)
             if (allies.includes(player_pos[i]['name'])) {
                 var img = new Image();
                 img.src = `static/items-images/other/heart.png`;
-                ctx.drawImage(img, (player_pos[i]['x'] - screen_x_offset + 0.5) * scale, (player_pos[i]['y'] - screen_y_offset + 0.5) * scale + 10,scale/2,scale/2)
+                if (!(`static/items-images/other/heart.png` in preloaded)) {
+                    preloaded[`static/items-images/other/heart.png`] = new Image()
+                    preloaded[`static/items-images/other/heart.png`].src = `static/items-images/other/heart.png`
+                }                  
+                ctx.drawImage(preloaded[`static/items-images/other/heart.png`], (player_pos[i]['x'] - screen_x_offset + 0.5) * scale, (player_pos[i]['y'] - screen_y_offset + 0.5) * scale + 10,scale/2,scale/2)
             }
         }
     }
     for (let i = 0; i < items.length; i++) { // draws items
         if ((0 <= items[i]['x'] - screen_x_offset && items[i]['x'] - screen_x_offset < screensize[0]) && (0 <= items[i]['y'] - screen_y_offset && items[i]['y'] - screen_y_offset < screensize[1])) {
-            var img = new Image();
-            img.src = `static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png`;
-            ctx.drawImage(img, (items[i]['x'] - screen_x_offset) * scale, (items[i]['y'] - screen_y_offset) * scale, scale, scale);
+            if (!(`static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png` in preloaded)) {
+                preloaded[`static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png`] = new Image()
+                preloaded[`static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png`].src = `static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png`
+            }              
+            ctx.drawImage(preloaded[`static/items-images/${items[i]['type']}${items[i]['weapon_type']}/${items[i]['rarity']}.png`], (items[i]['x'] - screen_x_offset) * scale, (items[i]['y'] - screen_y_offset) * scale, scale, scale);
         }
     }
-    var img = new Image();
-    img.src = `static/items-images/other/coin.png`;
+    if (!(`static/items-images/other/coin.png` in preloaded)) {
+        preloaded[`static/items-images/other/coin.png`] = new Image()
+        preloaded[`static/items-images/other/coin.png`].src = `static/items-images/other/coin.png`
+    }   
     for (let i=0; i<coins.length; i++) {
         if ((0 <= coins[i]['x'] - screen_x_offset && coins[i]['x'] - screen_x_offset < screensize[0]) && (0 <= coins[i]['y'] - screen_y_offset && coins[i]['y'] - screen_y_offset < screensize[1])) {
-            ctx.drawImage(img, (coins[i]['x'] - screen_x_offset+0.25) * scale, (coins[i]['y'] - screen_y_offset+0.25) * scale, scale/2, scale/2);
+            ctx.drawImage(preloaded[`static/items-images/other/coin.png`], (coins[i]['x'] - screen_x_offset+0.25) * scale, (coins[i]['y'] - screen_y_offset+0.25) * scale, scale/2, scale/2);
         }
     }
 });
