@@ -82,7 +82,7 @@ def new_position(global_vars: vars.GLOBAL, data: dict[str, str | int]) -> None:
     also will redirect back to login page if game should have gone offline since last connect"""
     global_vars.players[data['id']].move(global_vars, data['direction'])
     players_info = [i.getInfoInString() for i in global_vars.players if i.displayed_anywhere]
-    global_vars.SOCKETIO.emit('PlayersInfo', sorted(players_info, key=lambda x: int(x[2]), reverse=True))
+    global_vars.SOCKETIO.emit('players_info', sorted(players_info, key=lambda x: int(x[2]), reverse=True))
     global_vars.SOCKETIO.emit('new_positions', {"objects": [i.to_dict() for i in global_vars.players]})
     global_vars.SOCKETIO.emit('specificPlayerInfo', [i.getInfoForSpecificPlayer() for i in global_vars.players])
     utils.saveFiles(global_vars)
